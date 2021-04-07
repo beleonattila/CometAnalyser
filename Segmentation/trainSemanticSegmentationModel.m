@@ -1,6 +1,5 @@
 function trainSemanticSegmentationModel(path)
 
-% dataSetDir = 'D:\BRC\CometAnalyser\SampleImages\Fluorescence_dati01';
 baseFolder = path;
 
 imgDir = fullfile(baseFolder,'Images');
