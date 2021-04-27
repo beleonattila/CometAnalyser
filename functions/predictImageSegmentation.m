@@ -1,4 +1,34 @@
 function predictImageSegmentation(app,method)
+% AUTHOR: Attila Beleon (E-mail: beleonattila@gmail.com)
+% DATE: April 26, 2021
+% NAME: predictImageSegmentation (version 1.0)
+%
+% Performing automatic segmentation by the selected pretrained network.
+%
+% INPUT:
+%   app                 Handles of the application.
+%   method              'single' for the shown image
+%                       'multi' for the whole dateset
+%                       NOTE: performed on images without manual
+%                       segmentation (without red and blue)
+%
+% OUTPUT:
+%   This function modifies the app.comet_handles.Imgs_Composed at the
+%   predicted regions.
+%   Channel 1 to 3 will be modified to achieve pink and green colours
+%   Channel 4 to highlight that it's a prediction as class ID of 255
+%
+%
+% Copyright © 2021 Filippo Piccinini
+% Istituto Scientifico Romagnolo per lo Studio e la Cura dei Tumori (IRST)
+% IRCCS, Meldola (FC), Italy. All rights reserved.
+%
+% This program is free software; you can redistribute it and/or modify it
+% under the terms of the GNU General Public License version 2 (or higher)
+% as published by the Free Software Foundation. This program is
+% distributed WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% General Public License for more details.
 
 try
     net = load(app.comet_handles.segmentationOptions.modelPath);
@@ -13,29 +43,37 @@ catch me
     end
 end
 
+idx = zeros(app.comet_handles.NumImages,1);
 if strcmp(method, 'single')
-    idx = app.comet_handles.IndImgShown;
+    if ~any(app.comet_handles.Imgs_Composed(:,:,4,app.comet_handles.IndImgShown),'all')
+        idx(app.comet_handles.IndImgShown,1) = 1;
+    end
 elseif strcmp(method, 'multi')
-    idx = app.comet_handles.NumImages;
+    for j = 1:app.comet_handles.NumImages
+        if ~any(app.comet_handles.Imgs_Composed(:,:,4,j),'all')
+            idx(j,1) = 1;
+        end
+    end
 end
+idx = logical(idx);
+tempIm = app.comet_handles.Imgs_Stretched(:,:,1,idx);
+I = cat(3,tempIm,tempIm,tempIm);
 
-for i = 1:length(idx)
-    I = app.comet_handles.Imgs_Stretched(:,:,1,idx(i));
-    I = cat(3,I,I,I);
-    [C, ~, ~] = semanticseg(I, net.net);
-    C8 = uint8(C);
-    C8(C8 == 3) = 0;
-    BW = imbinarize(C8);
-    BW_fill = imfill(BW, 'holes');
-    BW2 = bwareaopen(BW_fill,250);
-    C8(~BW2) = 0;
-    green = C8;
-    green(BW2 & C8 == 2) = 255;
-    magenta = C8;
-    magenta(C8 == 1) = 255;
-    
-    app.comet_handles.Imgs_Composed(:,:,2,idx(i)) = app.comet_handles.Imgs_Composed(:,:,2,idx(i)) + green;
-    app.comet_handles.Imgs_Composed(:,:,1,idx(i)) = app.comet_handles.Imgs_Composed(:,:,1,idx(i)) + magenta;
-    app.comet_handles.Imgs_Composed(:,:,3,idx(i)) = app.comet_handles.Imgs_Composed(:,:,3,idx(i)) + magenta;
-    app.comet_handles.Imgs_Composed(:,:,4,idx(i)) = app.comet_handles.Imgs_Composed(:,:,4,idx(i)) + magenta + green;
-end
+[C, ~, ~] = semanticseg(I, net.net);
+C8 = uint8(C);
+C8(C8 == 3) = 0;
+BW = imbinarize(C8);
+BW_fill = imfill(BW, 4, 'holes');
+BW2 = bwareaopen(BW_fill,250,4);
+C8(~BW2) = 0;
+green = C8;
+green(BW2 & C8 == 2) = 255;
+green(green~=255) = 0;
+magenta = C8;
+magenta(C8 == 1) = 255;
+magenta(magenta~=255) = 0;
+% idx = logical(idx);
+app.comet_handles.Imgs_Composed(:,:,2,idx) = app.comet_handles.Imgs_Composed(:,:,2,idx) + permute(green,[1 2 4 3]);
+app.comet_handles.Imgs_Composed(:,:,1,idx) = app.comet_handles.Imgs_Composed(:,:,1,idx) + permute(magenta,[1 2 4 3]);
+app.comet_handles.Imgs_Composed(:,:,3,idx) = app.comet_handles.Imgs_Composed(:,:,3,idx) + permute(magenta,[1 2 4 3]);
+app.comet_handles.Imgs_Composed(:,:,4,idx) = app.comet_handles.Imgs_Composed(:,:,4,idx) + permute(magenta,[1 2 4 3]) + permute(green,[1 2 4 3]);

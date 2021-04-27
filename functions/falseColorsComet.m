@@ -27,7 +27,6 @@ function [ROIcomposed] = falseColorsComet(ROIori, MaskHead, MaskComet, flag_Curr
 % distributed WITHOUT ANY WARRANTY; without even the implied warranty of 
 % MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU 
 % General Public License for more details.
-global comet_handles
 
 MaskComet(MaskComet>0) = 1;
 if ~isempty(MaskHead)

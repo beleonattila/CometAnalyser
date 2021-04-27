@@ -1,4 +1,32 @@
 function [bool, errorString] = ROI_processing(app, BB, BWout1, cometProp)
+% AUTHOR: Attila Beleon (E-mail: beleonattila@gmail.com)
+% DATE: April 20, 2021
+% NAME: ROI_processing (version 1.0)
+% 
+% Calculating the required data for app.comet_handles.Roi and .masks
+% properties, updating the scope image with the result.
+%
+% INPUT:
+%   app                 Handles of the application.
+% 	BB                  Bounding box of selected comet to show in scope
+%   BWout1              Binary mask image of selected comet
+%   cometProp           TODO
+%
+% OUTPUT:
+%   bool                Succes indicator bool
+%   errorString         Error message if something goes wrong
+%
+% 
+% Copyright © 2021 Filippo Piccinini
+% Istituto Scientifico Romagnolo per lo Studio e la Cura dei Tumori (IRST) 
+% IRCCS, Meldola (FC), Italy. All rights reserved.
+%
+% This program is free software; you can redistribute it and/or modify it 
+% under the terms of the GNU General Public License version 2 (or higher) 
+% as published by the Free Software Foundation. This program is 
+% distributed WITHOUT ANY WARRANTY; without even the implied warranty of 
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU 
+% General Public License for more details.
 
 errorString = [];
 bool = 0;
@@ -7,14 +35,8 @@ ImgShown = app.comet_handles.Imgs_Stretched(:,:,1,IndImgShown);
 
 ROIori = ImgShown(BB(1,1):BB(2,1),BB(2,2):BB(1,2));
 if all(ROIori(:)==0) || all(ROIori(:)==255)
-    app.comet_handles.SelectACometOngoing = 0;
-    app.comet_handles.ROIshown = 0;
-    app.comet_handles.ROIori = [];
-    app.comet_handles.ROIoriFiltered = [];
-    app.comet_handles.ROIsegm = [];
-    app.comet_handles.MaskComet = [];
-    app.comet_handles.MaskHead = [];
-    app.comet_handles.ROI_ULCyx_DRCyx = [];
+    bool = 0;
+    errorString = 'No comet was found in the region.';
     return
 end
 
@@ -25,7 +47,7 @@ ROIoriFiltered = ImgShownFiltered(BB(1,1):BB(2,1),BB(2,2):BB(1,2));
 flag_CurrentCometType = app.comet_handles.flag_CurrentCometType;
 flag_CometFitFreehand = app.comet_handles.flag_CometFitFreehand;
 % Segment comet
-
+MaskHead = [];
 if isempty(cometProp)
     ROIsegm = BWout1(BB(1,1):BB(2,1),BB(2,2):BB(1,2));
     if flag_CometFitFreehand == 1
@@ -52,12 +74,15 @@ if isempty(cometProp)
         end
     end
     
-    
+    % At this point the mask is ready. Next step is to check wether a class
+    % ID is already there ot not.
     classLayer = app.comet_handles.Imgs_Composed(BB(1,1):BB(2,1),BB(2,2):BB(1,2), 4, IndImgShown);
     classIdx = unique(classLayer(logical(MaskComet)));
     classIdx = classIdx(classIdx>0);
     
-else
+else % The selected comet have been segmented and classified already.
+    
+    % Calclating an enlarged bounding box
     xRadius = floor(BB(2,1) - BB(1,1));
     yRadius = floor(BB(1,2) - BB(2,2));
     [w, h, ~] = size(app.comet_handles.Imgs_Composed(:,:, 1, IndImgShown));
@@ -67,7 +92,7 @@ else
     yL = max(1,BB(2,2)-yRadius);
     yH = min(h,BB(1,2)+yRadius);
     
-    BB2 = [xL, yH;...
+    BB2 = [xL, yH;... % This is the enlarged Bounding box
            xH, yL];
     
     ROIori = ImgShown(BB2(1,1):BB2(2,1),BB2(2,2):BB2(1,2));
@@ -98,9 +123,7 @@ if length(classIdx) == 1
                 idToShow = thumbIterator;
             else
                 errorString = 'Selected coordinates have been found stored as coordinates of multipe class members!\n Please contact the developer!';
-                appTextDlg(app, errorString, 'Corrupted Class structure', 'error')
-                set(InterfaceObj,'Enable','on');
-                app.comet_handles.SelectACometOngoing = 0;
+                bool = 0;
                 return
             end
         end
@@ -112,9 +135,6 @@ if length(classIdx) == 1
         app.selectedComet.param = membersOnThisImage(idToShow);
     else
         errorString = 'Can not detect any class, but should!\n Please contact the developer!';
-        appTextDlg(app, errorString, 'Corrupted Class structure', 'error')
-        set(InterfaceObj,'Enable','on');
-        app.comet_handles.SelectACometOngoing = 0;
         bool = 0;
         return
     end
@@ -134,11 +154,7 @@ elseif isempty(classIdx)
     end
 else
     errorString = 'Multiple class IDs have been found in the selected region.\n Please contact the developer!';
-    appTextDlg(app, errorString, 'Corrupted Class structure', 'error')
-    set(InterfaceObj,'Enable','on');
-    app.comet_handles.SelectACometOngoing = 0;
     return
 end
 app.scope.ImageSource = uint8(ROIcomposed);
-app.comet_handles.SelectACometOngoing = 0;
 bool = 1;
