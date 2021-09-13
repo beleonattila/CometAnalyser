@@ -66,5 +66,9 @@ if ~strcmp(app.selectedComet.className,'Unclassified')
 end
 app.selectedComet = [];
 app.comet_handles.Imgs_Composed(:,:,:,ImID) = Imgs_Composed;
-imshow(uint8(Imgs_Composed(:,:,1:3)), [], 'Parent', app.axes1);
+if ~isempty(app.imDatatipText)
+    delete(app.imDatatipText)
+    app.imDatatipText = [];
+end
+app.axes1.Children.CData = uint8(Imgs_Composed(:,:,1:3));
 bool = 1;

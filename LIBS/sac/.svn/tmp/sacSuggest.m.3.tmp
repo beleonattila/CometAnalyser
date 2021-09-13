@@ -1,0 +1,193 @@
+function [bestOptionString, bestOptionStruct, bestE] = sacSuggest(classifier, d, waitTime, searchMethod)
+
+
+
+% From the Suggest a Classifier Library (SAC), a Matlab Toolbox for cell
+% classification in high content screening. http://www.cellclassifier.org/
+% Copyright © 2011 Kevin Smith and Peter Horvath, Light Microscopy Centre 
+% (LMC), Swiss Federal Institute of Technology Zurich (ETHZ), Switzerland. 
+% All rights reserved.
+%
+% This program is free software; you can redistribute it and/or modify it 
+% under the terms of the GNU General Public License version 2 (or higher) 
+% as published by the Free Software Foundation. This program is 
+% distributed WITHOUT ANY WARRANTY; without even the implied warranty of 
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU 
+% General Public License for more details.
+
+
+if ~exist('waitTime', 'var'); waitTime = 60; end
+if ~exist('searchMethod', 'var'); searchMethod = 'brute force'; end
+
+
+% compute the number of searches we are allowed to perform
+N = determineNumberOfSearches(classifier, waitTime, d);
+fprintf('...trying to generate %d option strings\n', N);
+
+% N = 50
+
+% TODO: be flexible in determining which method is best! (support an index
+%       of different performance measures, for example)
+% TODO: support a search over more than one classifier
+% TODO: pass options to sub-suggestion functions
+% TODO: currently, seem to be overestimating the time it takes - doing too
+%       few searches
+% TODO: should be pass back the best trained model(s)?
+
+
+% TODO: make sure the cmd strings are unique - or we might waste a lot of time!
+
+% for speed-test
+%N = 500
+
+
+switch searchMethod
+    % ----------------- Brute Force ----------------------   
+    case 'brute force'
+        
+        tic;
+        [cmds OPTs] = sacSuggestBruteForce(classifier, N);
+        
+        % TODO: replace with PARFOR
+        parfor i = 1:length(cmds)
+            % TODO: check if it is Weka
+            sacInitJava;
+            str = [classifier ' ' cmds{i}];
+            [y,p] = sacCrossValidate(str, d, 5, 1);  %#ok<*ASGLU>
+            [E(i) s] = sacEvaluate(d.labels, p, '-ACC -waAU -q');
+            Acc(i) = E(i).ACC;
+            AUC(i) = E(i).waAU;
+            
+            if ~isempty(cmds{i})
+                fprintf('---- ACC = %0.4f, AUC = %0.4f  options: %s\n', E(i).ACC, E(i).waAU, cmds{i});
+            else
+                fprintf('---- ACC = %0.4f, AUC = %0.4f  options: %s\n', E(i).ACC, E(i).waAU, []);
+            end
+        end
+        toc;
+       
+        
+    % ----------------- Random Search ----------------------      
+    case 'random'
+        tic;
+        [cmds OPTs] = sacSuggestRandom(classifier, N, 'rand');
+        parfor i = 1:length(cmds)
+            % TODO: check if it is Weka
+            sacInitJava;
+            str = [classifier ' ' cmds{i}];
+            [y,p] = sacCrossValidate(str, d, 5, 1);
+            [E(i) s] = sacEvaluate(d.labels, p, '-ACC -waAU -q');
+            Acc(i) = E(i).ACC;
+            AUC(i) = E(i).waAU;
+            
+           if ~isempty(cmds{i})
+                fprintf('---- ACC = %0.4f, AUC = %0.4f  options: %s\n', E(i).ACC, E(i).waAU, cmds{i});
+            else
+                fprintf('---- ACC = %0.4f, AUC = %0.4f  options: %s\n', E(i).ACC, E(i).waAU, []);
+            end
+            
+        end
+        toc;
+        
+    % ----------------- Coarse-to-Fine ----------------------     
+    case 'coarse-to-fine'
+      
+        
+        
+    % ----------------- Gradient Descent ----------------------      
+    case 'convex'
+        
+        
+    % ----------------- Simulated Annealing ----------------------     
+    case 'SA'
+        [cmds OPTs] = sacSuggestSimulatedAnnealing(classifier, N, d);
+        
+        
+    otherwise
+        error(['unknown search method: ' searchMethod]);
+end
+
+mx = max(Acc); %#ok<ASGLU>
+best_inds = find(Acc == mx);
+disp('');
+disp(' ========================================== ');
+
+fprintf('%d best option configurations found!\n\n', length(best_inds));
+
+
+
+for i = 1:length(best_inds)
+
+    bestOptionString = cmds{best_inds(i)};
+    bestOptionStruct = OPTs{best_inds(i)};
+    bestE = E(best_inds(i));
+
+    fprintf('%d best option string: %s\n', i, bestOptionString);
+    fprintf('%d best accuracy: %f   best AUC: %f\n\n', i, Acc(best_inds(i)), AUC(best_inds(i)));
+end
+
+% 
+% disp('----- TEMPORARY! stopped in sacSuggest.m-----');
+% keyboard;
+
+<<<<<<< .mine
+=======
+% disp('----- TEMPORARY! stopped in sacSuggest.m-----');
+% keyboard;
+>>>>>>> .r106
+
+
+
+
+
+
+
+
+function N = determineNumberOfSearches(classifier, waitTime, d)
+
+% TODO: do not waste these calculations
+
+% generate k=10 random search strings and do cross-validation to estimate 
+% the average cose of training 
+%a = matlabpool('size');
+%k = 2*a;
+
+% k = 10;
+% [cmds OPTs] = sacSuggestRandom(classifier, k); %#ok<*NASGU>
+% 
+% %cmd = '-norm 0';
+% % [OPT cmd] = sacGetDefaultOptions(classifier);
+% % cmds = repmat(cmd, k,1);
+% 
+% %keyboard;
+% 
+% 
+% % determine the cost for cross-validation and evaluation
+% tic;
+% for i = 1:k
+%     % TODO: check if it is Weka, then do sacInitJava
+%     %cmds{i}
+%     sacInitJava; 
+%     if ~isempty(cmds{i})
+%         str = [classifier ' ' cmds{i}];
+%     else
+%         str = classifier;
+%     end
+%     [y,p] = sacCrossValidate(str, d, 5, 1);
+%     %[y,p] = sacCrossValidate(str, d, 5);
+%     [E s] = sacEvaluate(d.labels, p, '-ACC -waAU -q');
+% end
+% time_cost = toc/k; 
+% 
+% 
+% % N is chosen to consume the waitTime
+% N =  round(waitTime / time_cost);
+% if N < 1
+%     error(['Not possible to perform searches in specified time limit: ' num2str(waitTime) ' seconds.']);
+% end
+
+
+
+N = 80*8;
+
+

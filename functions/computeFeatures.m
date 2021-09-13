@@ -1,4 +1,4 @@
-function  Table = computeFeatures(Maski_Origj, Maski_Cometj, Maski_Tailj, Maski_Headj, Maski_Classj, Imgi_Name, Intensity_MinMax_StretchedOrig, Cellj)
+function  Table = computeFeatures(Maski_Origj, Maski_Cometj, Maski_Tailj, Maski_Headj, Maski_Classj, Imgi_Name, Intensity_MinMax_StretchedOrig, Cellj, ULC, DRC)
 % AUTHOR: Filippo Piccinini (E-mail: filippo.piccinini85@gmail.com)
 % DATE: April 14, 2017
 % NAME: ComputeFeatures (version 1.0)
@@ -37,6 +37,10 @@ function  Table = computeFeatures(Maski_Origj, Maski_Cometj, Maski_Tailj, Maski_
 Table.ImageName{1,1}  = char(Imgi_Name);
 Table.CometID{1,1}    = Cellj;
 Table.CometClass{1,1} = Maski_Classj;
+Table.xL = ULC(1);
+Table.xH = DRC(1);
+Table.yL = ULC(2);
+Table.yH = DRC(2);
 
 FunctionList = {'data_Comet_Area_inPixels';...
     'data_Comet_Max_Length_inPixels';...

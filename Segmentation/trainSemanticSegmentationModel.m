@@ -1,7 +1,7 @@
-function trainSemanticSegmentationModel(path,options)
+function [bool, message] = trainSemanticSegmentationModel(path,options)
 % AUTHOR: Attila Beleon (E-mail: beleonattila@gmail.com)
-% DATE: April 14, 2017
-% NAME: ComputeFeatures (version 1.0)
+% DATE: April 14, 2021
+% NAME: trainSemanticSegmentationModel (version 1.0)
 %
 % INPUT:
 % 	path                Path of annotadet dataset folder
@@ -15,6 +15,15 @@ function trainSemanticSegmentationModel(path,options)
 % The function builds a 'Resnet18' model, then train it with presegmented
 % images from input 'path' folder.
 %
+% REFERENCE: [1] Chen, L., Y. Zhu, G. Papandreou, F. Schroff, and H. Adam.
+% "Encoder-Decoder with Atrous Separable Convolution for Semantic Image
+% Segmentation." Computer Vision — ECCV 2018, 833-851. Munic, Germany:
+% ECCV, 2018.
+%
+% ### deeplabv3plusLayers ###
+%
+% https://www.mathworks.com/help/vision/ref/deeplabv3pluslayers.html
+%
 % Copyright © 2021 Filippo Piccinini
 % Istituto Scientifico Romagnolo per lo Studio e la Cura dei Tumori (IRST) 
 % IRCCS, Meldola (FC), Italy. All rights reserved.
@@ -26,12 +35,33 @@ function trainSemanticSegmentationModel(path,options)
 % MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU 
 % General Public License for more details.
 
+bool = 0;
+message = [];
 baseFolder = path;
+
+if ~exist(fullfile(baseFolder,'Images'),'dir') || ~exist(fullfile(baseFolder,'Masks'),'dir')
+    message = ['The selected folder does not contain annotated data.\n',...
+                'It does not contain the two required subfolders named ''Images'' and ''Masks''.'];
+    return
+end
 
 imgDir = fullfile(baseFolder,'Images');
 labelDir = fullfile(baseFolder,'Masks');
 
+if isempty(dir(fullfile(imgDir,'*.png'))) || isempty(dir(fullfile(labelDir,'*.png')))
+    message = ['The selected folder does not contain annotated data.\n',...
+                'Image files are missing from subfolder.\n'...
+                '(Regquired extension is PNG)'];
+    return
+end
+
 imds = imageDatastore(imgDir);
+if numel(imds.Files)<6
+    message = ['Not enough training sample.\n',...
+                'Please annotate more images for the sake of reliable result.\n'...
+                '(Minimum requirement is 6 images with labels.)'];
+    return
+end
 
 I = readimage(imds,1);
 figure, imshow(I)
@@ -90,6 +120,7 @@ numClasses = numel(classes);
 lgraph = deeplabv3plusLayers(imageSize, numClasses, "resnet18");
 
 imageFreq = tbl.PixelCount ./ tbl.ImagePixelCount;
+imageFreq(isnan(imageFreq)) = min(imageFreq) * 0.00001;
 classWeights = median(imageFreq) ./ imageFreq;
 
 pxLayer = pixelClassificationLayer('Name','labels','Classes',tbl.Name,'ClassWeights',classWeights);
@@ -103,7 +134,7 @@ if isempty(options)
     options = trainingOptions('sgdm', ...
     'LearnRateSchedule','piecewise',...
     'LearnRateDropPeriod',8,...
-    'LearnRateDropFactor',0.3,...
+    'LearnRateDropFactor',0.5,...
     'Momentum',0.9, ...
     'InitialLearnRate',1e-3, ...
     'L2Regularization',0.005, ...
@@ -177,4 +208,8 @@ metrics.DataSetMetrics
 metrics.ClassMetrics
 
 % Check the writting permission in standAlone version!
-save(fullfile(baseFolder,[datestr(now,30),'_preTrainedNetwork_',num2str(metrics.DataSetMetrics.GlobalAccuracy),'.mat']),'net')
+modelName = fullfile(baseFolder,[datestr(now,30),'_preTrainedNetwork_',num2str(metrics.DataSetMetrics.GlobalAccuracy),'.mat']);
+helpdlg(['Saving trained model at path: ', modelName], 'Save model')
+save(modelName,'net')
+helpdlg('Trained model is saved.', 'Train complete')
+bool = 1;

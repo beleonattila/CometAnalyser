@@ -1,0 +1,287 @@
+K 25
+svn:wc:ra_dav:version-url
+V 46
+/lmc_dag/!svn/ver/169/projects/sac/classifiers
+END
+sacPredict_LogisticRegression_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/lmc_dag/!svn/ver/163/projects/sac/classifiers/sacPredict_LogisticRegression_Weka.m
+END
+sacPredict_NearestNeighbor_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/lmc_dag/!svn/ver/159/projects/sac/classifiers/sacPredict_NearestNeighbor_Weka.m
+END
+sacPredict_KStar_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/lmc_dag/!svn/ver/42/projects/sac/classifiers/sacPredict_KStar_Weka.m
+END
+sacPredict_LogitBoost_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/lmc_dag/!svn/ver/42/projects/sac/classifiers/sacPredict_LogitBoost_Weka.m
+END
+sacLibsvmPredict.m
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/lmc_dag/!svn/ver/14/projects/sac/classifiers/sacLibsvmPredict.m
+END
+sacPredict_KNN_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/lmc_dag/!svn/ver/126/projects/sac/classifiers/sacPredict_KNN_Weka.m
+END
+sacPredict_DecisionTree_CART_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/lmc_dag/!svn/ver/162/projects/sac/classifiers/sacPredict_DecisionTree_CART_Weka.m
+END
+sacPredict_MLP_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/lmc_dag/!svn/ver/42/projects/sac/classifiers/sacPredict_MLP_Weka.m
+END
+sacTrain_SVM_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/lmc_dag/!svn/ver/168/projects/sac/classifiers/sacTrain_SVM_Weka.m
+END
+sacTrain_Ensemble_Stacking.m
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/lmc_dag/!svn/ver/42/projects/sac/classifiers/sacTrain_Ensemble_Stacking.m
+END
+sacTrain_NearestNeighbor_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/lmc_dag/!svn/ver/103/projects/sac/classifiers/sacTrain_NearestNeighbor_Weka.m
+END
+sacTrain_Ensemble_Vote.m
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/lmc_dag/!svn/ver/42/projects/sac/classifiers/sacTrain_Ensemble_Vote.m
+END
+sacPredict_DecisionTable_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/lmc_dag/!svn/ver/165/projects/sac/classifiers/sacPredict_DecisionTable_Weka.m
+END
+sacTrain_RBFNetwork_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/lmc_dag/!svn/ver/103/projects/sac/classifiers/sacTrain_RBFNetwork_Weka.m
+END
+sacPredict_Ensemble_Stacking.m
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/lmc_dag/!svn/ver/42/projects/sac/classifiers/sacPredict_Ensemble_Stacking.m
+END
+sacTrain_KStar_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/lmc_dag/!svn/ver/99/projects/sac/classifiers/sacTrain_KStar_Weka.m
+END
+sacTrain_DecisionTree_CART_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/lmc_dag/!svn/ver/162/projects/sac/classifiers/sacTrain_DecisionTree_CART_Weka.m
+END
+sacTrain_NaiveBayes_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/lmc_dag/!svn/ver/103/projects/sac/classifiers/sacTrain_NaiveBayes_Weka.m
+END
+sacTrain_KNN_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/lmc_dag/!svn/ver/103/projects/sac/classifiers/sacTrain_KNN_Weka.m
+END
+sacPredict_SVM_LibsvmTest.m
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/lmc_dag/!svn/ver/87/projects/sac/classifiers/sacPredict_SVM_LibsvmTest.m
+END
+sacPredict_SVM_Libsvm.m
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/lmc_dag/!svn/ver/145/projects/sac/classifiers/sacPredict_SVM_Libsvm.m
+END
+sacTrain_BoostedStump_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/lmc_dag/!svn/ver/162/projects/sac/classifiers/sacTrain_BoostedStump_Weka.m
+END
+sacTrain_DecisionTree_C45_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/lmc_dag/!svn/ver/99/projects/sac/classifiers/sacTrain_DecisionTree_C45_Weka.m
+END
+sacTrain_MLP_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/lmc_dag/!svn/ver/169/projects/sac/classifiers/sacTrain_MLP_Weka.m
+END
+sacPredict_BoostedTree_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/lmc_dag/!svn/ver/162/projects/sac/classifiers/sacPredict_BoostedTree_Weka.m
+END
+sacTrain_Adaboost_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/lmc_dag/!svn/ver/99/projects/sac/classifiers/sacTrain_Adaboost_Weka.m
+END
+sacPredict_Ensemble_Vote.m
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/lmc_dag/!svn/ver/121/projects/sac/classifiers/sacPredict_Ensemble_Vote.m
+END
+sacTrain_RandomTree_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/lmc_dag/!svn/ver/103/projects/sac/classifiers/sacTrain_RandomTree_Weka.m
+END
+sacPredict_RBFNetwork_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/lmc_dag/!svn/ver/42/projects/sac/classifiers/sacPredict_RBFNetwork_Weka.m
+END
+sacTrain_DecisionTree_BestFirst_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/lmc_dag/!svn/ver/99/projects/sac/classifiers/sacTrain_DecisionTree_BestFirst_Weka.m
+END
+sacPredict_NaiveBayes_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/lmc_dag/!svn/ver/42/projects/sac/classifiers/sacPredict_NaiveBayes_Weka.m
+END
+sacTrain_RandomForest_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/lmc_dag/!svn/ver/103/projects/sac/classifiers/sacTrain_RandomForest_Weka.m
+END
+sacPredict_DecisionTree_C45_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/lmc_dag/!svn/ver/42/projects/sac/classifiers/sacPredict_DecisionTree_C45_Weka.m
+END
+sacTrain_DecisionTable_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/lmc_dag/!svn/ver/165/projects/sac/classifiers/sacTrain_DecisionTable_Weka.m
+END
+sacPredict_BoostedStump_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/lmc_dag/!svn/ver/162/projects/sac/classifiers/sacPredict_BoostedStump_Weka.m
+END
+sacPredict_Adaboost_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/lmc_dag/!svn/ver/42/projects/sac/classifiers/sacPredict_Adaboost_Weka.m
+END
+sacTrain_SVM_Libsvm.m
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/lmc_dag/!svn/ver/145/projects/sac/classifiers/sacTrain_SVM_Libsvm.m
+END
+sacTrain_BayesNet_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/lmc_dag/!svn/ver/99/projects/sac/classifiers/sacTrain_BayesNet_Weka.m
+END
+sacTrain_SVM_LibsvmTest.m
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/lmc_dag/!svn/ver/87/projects/sac/classifiers/sacTrain_SVM_LibsvmTest.m
+END
+sacPredict_RandomTree_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/lmc_dag/!svn/ver/42/projects/sac/classifiers/sacPredict_RandomTree_Weka.m
+END
+sacTrain_LogisticRegression_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/lmc_dag/!svn/ver/163/projects/sac/classifiers/sacTrain_LogisticRegression_Weka.m
+END
+sacPredict_DecisionTree_BestFirst_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 86
+/lmc_dag/!svn/ver/99/projects/sac/classifiers/sacPredict_DecisionTree_BestFirst_Weka.m
+END
+sacTrain_BoostedTree_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/lmc_dag/!svn/ver/162/projects/sac/classifiers/sacTrain_BoostedTree_Weka.m
+END
+sacPredict_RandomForest_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/lmc_dag/!svn/ver/42/projects/sac/classifiers/sacPredict_RandomForest_Weka.m
+END
+sacPredict_SVM_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/lmc_dag/!svn/ver/87/projects/sac/classifiers/sacPredict_SVM_Weka.m
+END
+sacTrain_LogitBoost_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/lmc_dag/!svn/ver/99/projects/sac/classifiers/sacTrain_LogitBoost_Weka.m
+END
+sacPredict_BayesNet_Weka.m
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/lmc_dag/!svn/ver/42/projects/sac/classifiers/sacPredict_BayesNet_Weka.m
+END

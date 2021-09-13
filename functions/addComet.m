@@ -31,6 +31,19 @@ if strcmp(app.pop_class.Value,'~No Class~')
     return
 end
 
+if ~isempty(app.selectedComet) % If the comet is presegmented
+%     BB = app.selectedComet.param.thumbnailCoor;
+%     coor = [round((BB(2,2)+BB(1,2))/2), round((BB(1,1)+BB(2,1))/2)];
+%     classIdx = app.comet_handles.Imgs_Composed(coor(2),coor(1),4,app.comet_handles.IndImgShown);
+%     if classIdx < 255 % If the comet is manually segmented (Red & Blue)
+        [bool2, warnString] = removeComet(app);
+        if bool2 == 0
+            warnString = 'Failed to remove comet from previous class.';
+            return
+        end
+%     end
+end
+
 MaskHead = app.comet_handles.MaskHead;
 MaskComet = app.comet_handles.MaskComet;
 flag_CurrentCometType = app.comet_handles.flag_CurrentCometType;
@@ -92,19 +105,6 @@ thumbnailCoor = [min(maskRow), max(maskCol);...
     max(maskRow), min(maskCol)];
 className = app.pop_class.Value;
 
-if ~isempty(app.selectedComet) % If the comet is presegmented
-    BB = app.selectedComet.param.thumbnailCoor;
-    coor = [round((BB(2,2)+BB(1,2))/2), round((BB(1,1)+BB(2,1))/2)];
-    classIdx = app.comet_handles.Imgs_Composed(coor(2),coor(1),4,app.comet_handles.IndImgShown);
-    if classIdx < 255 % If the comet is manually segmented (Red & Blue)
-        [bool2, warnString] = removeComet(app);
-        if bool2 == 0
-            warnString = 'Failed to remove comet from previous class.';
-            return
-        end
-    end
-end
-
 if app.comet_handles.Classes.(className).num_el < 1
     upcomingIdx = 1;
 else
@@ -116,7 +116,10 @@ app.comet_handles.Classes.(className).Members(upcomingIdx).ImID = IndImgShown;
 app.comet_handles.Classes.(className).Members(upcomingIdx).thumbnailCoor = thumbnailCoor;
 app.comet_handles.Classes.(className).Members(upcomingIdx).mask = ImgMaskInd(thumbnailCoor(1,1):thumbnailCoor(2,1),thumbnailCoor(2,2):thumbnailCoor(1,2));
 app.comet_handles.Classes.(className).num_el = upcomingIdx;
-imshow(uint8(Imgs_Composed(:,:,1:3)), [], 'Parent', app.axes1);
+if ~isempty(app.imDatatipText)
+    delete(app.imDatatipText)
+    app.imDatatipText = [];
+end
 app.comet_handles.Imgs_Composed(:,:,:,IndImgShown) = Imgs_Composed;
 app.comet_handles.FlagNewComets = app.comet_handles.FlagNewComets + 1;
 bool = 1;

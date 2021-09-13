@@ -43,7 +43,7 @@ Bitmaps = cell(1,length(Characters));
 
 % Use a single figure and axis for maximum speed. White background.
 
-fighandle = figure('Position',[50 50 150+Size 150+Size],'Units','pixels','Color',[1 1 1]);
+fighandle = figure('Position',[50 50 150+Size 150+Size],'Units','pixels','Color',[1 1 1],'Visible','off');
 axes('Position',[0 0 1 1],'Units','Normalized');
 axis off;
 

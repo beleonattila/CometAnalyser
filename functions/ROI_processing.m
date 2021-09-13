@@ -134,7 +134,7 @@ if length(classIdx) == 1
         app.selectedComet.className = classNames{classIdx};
         app.selectedComet.param = membersOnThisImage(idToShow);
     else
-        errorString = 'Can not detect any class, but should!\n Please contact the developer!';
+        errorString = 'The selected region might touch a classified object. Please select another region!';
         bool = 0;
         return
     end

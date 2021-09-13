@@ -27,9 +27,10 @@ function OutValue = data_Tail_Area_inPixels(Maski_Origj, Maski_Cometj, Maski_Tai
 
 Mask = Maski_Tailj;
 if sum(Mask(:))>1      
-    [MaskMaxTailj, RotationAngle, Comet_Centroid_yrow, Comet_Centroid_xcol] = ComputeMaskMaxTailj(Maski_Cometj, Maski_Tailj, Maski_Headj); 
-    Values = struct2cell(regionprops(MaskMaxTailj,'Area'));
-    OutValue = Values{1};
+%     [MaskMaxTailj, RotationAngle, Comet_Centroid_yrow, Comet_Centroid_xcol] = ComputeMaskMaxTailj(Maski_Cometj, Maski_Tailj, Maski_Headj);
+%     Values = struct2cell(regionprops(MaskMaxTailj,'Area'));
+%     OutValue = Values{1};
+    OutValue = sum(Maski_Tailj,'all');
 else
     OutValue = 0;
 end

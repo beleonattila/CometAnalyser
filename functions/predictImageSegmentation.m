@@ -1,4 +1,4 @@
-function predictImageSegmentation(app,method)
+function [bool, message] = predictImageSegmentation(app,method)
 % AUTHOR: Attila Beleon (E-mail: beleonattila@gmail.com)
 % DATE: April 26, 2021
 % NAME: predictImageSegmentation (version 1.0)
@@ -30,18 +30,40 @@ function predictImageSegmentation(app,method)
 % MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 % General Public License for more details.
 
+bool = 0;
 try
-    net = load(app.comet_handles.segmentationOptions.modelPath);
-catch me
-    if strcmp(me.identifier,'MATLAB:load:couldNotReadFile')
+    message = 'Loading the model, please wait...';
+    dlgHandle = msgbox(sprintf(message),'Training','help');
+    load(app.comet_handles.segmentationOptions.modelPath);
+    if isempty(who('net'))
+        if ishandle(dlgHandle), close(dlgHandle), end
+        message = 'Invalid model. Please select a valid model, then try again!';
+        dlgHandle = msgbox(sprintf(message),'Training','help');
+        uiwait(dlgHandle)
         [fileName, path] = uigetfile('Select a pre-trained model!');
         if ischar(path)
             app.comet_handles.segmentationOptions.modelPath = fullfile(path,fileName);
-            predictImageSegmentation(app,method)
+            bool = 1;
             return
         end
     end
+catch me
+    if ishandle(dlgHandle), close(dlgHandle), end
+    dlgHandle = msgbox(sprintf(me.message),'Training','error');
+    uiwait(dlgHandle)
+    message = 'Invalid model. Please select a valid model, then try again!';
+    dlgHandle = msgbox(sprintf(message),'Training','help');
+    uiwait(dlgHandle)
+    [fileName, path] = uigetfile('Select a pre-trained model!');
+    if ischar(path)
+        app.comet_handles.segmentationOptions.modelPath = fullfile(path,fileName);
+        bool = 1;
+        return
+    end
 end
+if ishandle(dlgHandle), close(dlgHandle), end
+
+
 
 idx = zeros(app.comet_handles.NumImages,1);
 if strcmp(method, 'single')
@@ -49,31 +71,57 @@ if strcmp(method, 'single')
         idx(app.comet_handles.IndImgShown,1) = 1;
     end
 elseif strcmp(method, 'multi')
-    for j = 1:app.comet_handles.NumImages
+%     wb = waitbar(0,'Preparing images');
+    n = app.comet_handles.NumImages;
+    for j = 1:n
         if ~any(app.comet_handles.Imgs_Composed(:,:,4,j),'all')
             idx(j,1) = 1;
+%             if ishandle(wb)
+%                 wb = waitbar(j/n,wb,'Preparing images');
+%             end
         end
     end
+%     if ishandle(wb), close(wb), end
 end
+
+
 idx = logical(idx);
+if ~any(idx)
+    if strcmp(method, 'single')
+        message = 'The current image contains annotations: it will be not analysed';
+    else
+        message = ['There is no blank image to do segmentation.\n ',...
+                    'Segmentation only works on images with out annotation'];
+    end
+    return
+end
 tempIm = app.comet_handles.Imgs_Stretched(:,:,1,idx);
 I = cat(3,tempIm,tempIm,tempIm);
 
-[C, ~, ~] = semanticseg(I, net.net);
+progressfig = uifigure;
+uiprogressdlg(progressfig,'Title','Performing prediction. Please wait...',...
+        'Indeterminate','on');
+pause(2)
+[C, ~, ~] = semanticseg(I, net);
 C8 = uint8(C);
 C8(C8 == 3) = 0;
 BW = imbinarize(C8);
 BW_fill = imfill(BW, 4, 'holes');
-BW2 = bwareaopen(BW_fill,250,4);
+BW_open = bwareaopen(BW_fill,250,4);
+se = strel('disk',20);
+BW2 = imclose(BW_open,se);
 C8(~BW2) = 0;
-green = C8;
-green(BW2 & C8 == 2) = 255;
-green(green~=255) = 0;
+green = uint8(BW2) * 255;
+green(C8==1) = 0;
 magenta = C8;
 magenta(C8 == 1) = 255;
 magenta(magenta~=255) = 0;
-% idx = logical(idx);
 app.comet_handles.Imgs_Composed(:,:,2,idx) = app.comet_handles.Imgs_Composed(:,:,2,idx) + permute(green,[1 2 4 3]);
 app.comet_handles.Imgs_Composed(:,:,1,idx) = app.comet_handles.Imgs_Composed(:,:,1,idx) + permute(magenta,[1 2 4 3]);
 app.comet_handles.Imgs_Composed(:,:,3,idx) = app.comet_handles.Imgs_Composed(:,:,3,idx) + permute(magenta,[1 2 4 3]);
 app.comet_handles.Imgs_Composed(:,:,4,idx) = app.comet_handles.Imgs_Composed(:,:,4,idx) + permute(magenta,[1 2 4 3]) + permute(green,[1 2 4 3]);
+
+delete(progressfig)
+
+message = ['Segmentation done.\n ', num2str(sum(idx)),' image(s) have been segmented.'];
+bool = 1;

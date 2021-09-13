@@ -28,9 +28,9 @@ function [iscomplete, errorString] = clickOnCometSelection(app, coor)
 iscomplete = 0;
 errorString = [];
 classIdx = app.comet_handles.Imgs_Composed(coor(2),coor(1),4,app.comet_handles.IndImgShown);
-classNames = fieldnames(app.comet_handles.Classes);
 IndImgShown = app.comet_handles.IndImgShown;
 if classIdx < 255
+    classNames = fieldnames(app.comet_handles.Classes);
     membersOnThisImage = app.comet_handles.Classes.(classNames{classIdx}).Members([app.comet_handles.Classes.(classNames{classIdx}).Members.ImID] == IndImgShown);
     idToShow = [];
     for i = 1:size(membersOnThisImage,2)

@@ -37,7 +37,7 @@ for i = 1:app.comet_handles.NumImages
         composed_ch1(idx) = tempStretched(idx);
         composed_ch2(idx) = tempStretched(idx);
         composed_ch3(idx) = tempStretched(idx);
-        composed_ch4(idx) = tempStretched(idx);
+        composed_ch4(idx) = 0;
         
         app.comet_handles.Imgs_Composed(:,:,1,i) = composed_ch1;
         app.comet_handles.Imgs_Composed(:,:,2,i) = composed_ch2;

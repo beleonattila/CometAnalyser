@@ -7,8 +7,8 @@ rng(0);
 numFiles = numel(imds.Files);
 shuffledIndices = randperm(numFiles);
 
-% Use 60% of the images for training.
-numTrain = round(0.60 * numFiles);
+% Use 70% of the images for training.
+numTrain = round(0.70 * numFiles);
 trainingIdx = shuffledIndices(1:numTrain);
 
 % Use 20% of the images for validation

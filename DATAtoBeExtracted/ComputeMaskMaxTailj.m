@@ -54,9 +54,15 @@ Headj_xcolmin = min(Headj_xcol); Headj_xcolmax = max(Headj_xcol);
 LengthLeftSide  = abs(Headj_xcolmin-Cometj_xcolmin);
 LengthRightSide = abs(Headj_xcolmax-Cometj_xcolmax);
 MaskMaxTailj = Maski_Tailj_Rotated;
+
 if LengthLeftSide>LengthRightSide
     MaskMaxTailj(:,Headj_xcolmin:end) = 0;
 else
     MaskMaxTailj(:,1:Headj_xcolmax) = 0;
+end
+if sum(MaskMaxTailj)==0
+    props = regionprops('table',imbinarize(Maski_Tailj_Rotated),'Area','PixelList','PixelIdxList');
+    idx = find(max(props.Area));
+    MaskMaxTailj(props.PixelIdxList{idx}) = 1;
 end
 MaskMaxTailj = rotateAround(MaskMaxTailj, Comet_Centroid_yrow, Comet_Centroid_xcol, RotationAngle);

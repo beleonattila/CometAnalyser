@@ -53,35 +53,36 @@ try
     % Check on the minimum number of pixels of the ROI selected
     if ~isvalid(hFigFree2) || numel(find(createMask(hFigFree2)==1))<=app.comet_handles.ROIminNumPixels
         iscomplete = 0;
-        return
+        errorString = 'The selected region is too small!';
+        if exist('hFigFree2', 'var'); delete(hFigFree2); end
     else
         PartialMask = createMask( hFigFree2 );
-    end
-
-    BWout1 = zeros(yrowOri, xcolOri);
-    BWout1(PartialMask) = 1;
-    
-    clear pos
-    pos = hFigFree2.Position;
-    ULC_Yrow_roi = round(min([pos(:,2); yrowOri]));
-    ULC_Xcol_roi = round(min([pos(:,1); xcolOri]));
-    DRC_Yrow_roi = round(max([pos(:,2); 1]));
-    DRC_Xcol_roi = round(max([pos(:,1); 1]));
-    BB = [ULC_Yrow_roi, DRC_Xcol_roi;...
-        DRC_Yrow_roi, ULC_Xcol_roi];
-    
-    % Delete line
-    if exist('hFigFree2', 'var'); delete(hFigFree2); end
-    [bool, errorString] = ROI_processing(app, BB, BWout1, []);
-    
-    if bool == 0
-        if isempty(errorString)
-            errorString = 'No comet has been detected.';
+        
+        BWout1 = zeros(yrowOri, xcolOri);
+        BWout1(PartialMask) = 1;
+        
+        clear pos
+        pos = hFigFree2.Position;
+        xHi = round(min([max(pos(:,2)); yrowOri]));
+        yHi = round(min([max(pos(:,1)); xcolOri]));
+        xLow = round(max([min(pos(:,2)); 1]));
+        yLow = round(max([min(pos(:,1)); 1]));
+        BB = [xLow, yHi;...
+            xHi, yLow];
+        
+        % Delete line
+        if exist('hFigFree2', 'var'); delete(hFigFree2); end
+        [bool, errorString] = ROI_processing(app, BB, BWout1, []);
+        
+        if bool == 0
+            if isempty(errorString)
+                errorString = 'No comet has been detected.';
+            end
+            iscomplete = 0;
+            return
         end
-        iscomplete = 0;
-        return
+        iscomplete = 1;
     end
-    iscomplete = 1;
 catch ME
     iscomplete = 0;
     errorString = ['Wrong segmentation. \n\nError description:\n' ME.message];

@@ -22,6 +22,7 @@ cols = 4;
 margin = 0.05 * axesWidth;
 sepsize = 0.05 * axesWidth; %Distance Between thumbnails
 classNames = fieldnames(Classes);
+classNames = setdiff(classNames,'Unclassified');
 imSize = ceil(((axesWidth - (2*margin)) - ((cols-1)*sepsize))/cols); % Catalog image size
 backGround = 240;
 
@@ -29,7 +30,7 @@ for cl = 1:numel(classNames)
     
     numimgs = Classes.(classNames{cl}).num_el;
     rows = ceil(numimgs / cols);
-    height = rows * imSize + (rows+1) * sepsize;
+    height = (rows * imSize) + ((rows+1) * sepsize);
     compImgs = uint8(zeros(height,axesWidth, 2));
     compImgs(:,:,1) = (compImgs(:,:,1)+1)*backGround;
     

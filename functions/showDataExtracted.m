@@ -69,7 +69,7 @@ Esporta_Matlab= uicontrol(form1,'Style','pushbutton',...
 
 %________FUNZIONE PULSANTE ESPORTA EXCEL________ 
     function esporta_excel_plot(hObject,eventdata)
-        [file,path] = uiputfile('dataExtracted.xls','Save file');
+        [file,path] = uiputfile('dataExtracted.csv','Save file');
         if file==0
             return
         end
