@@ -28,6 +28,11 @@ function [iscomplete, errorString] = clickOnCometSelection(app, coor)
 iscomplete = 0;
 errorString = [];
 classIdx = app.comet_handles.Imgs_Composed(coor(2),coor(1),4,app.comet_handles.IndImgShown);
+if classIdx == 0
+    [tempX, tempY] = find(app.comet_handles.Imgs_Composed(:,:,4,app.comet_handles.IndImgShown));
+    [~, idx] = min(sqrt((tempX-coor(2)).^2 + (tempY - coor(1)).^2));
+    classIdx = app.comet_handles.Imgs_Composed(tempX(idx(1)),tempY(idx(1)),4,app.comet_handles.IndImgShown);
+end
 IndImgShown = app.comet_handles.IndImgShown;
 if classIdx < 255
     classNames = fieldnames(app.comet_handles.Classes);

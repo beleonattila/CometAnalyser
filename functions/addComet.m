@@ -1,4 +1,4 @@
-function [bool, warnString] = addComet(app)
+function [bool, warnString] = addComet(app,classID)
 % AUTHOR: Attila Beleon (E-mail: beleonattila@gmail.com)
 % DATE: April 22, 2021
 % NAME: addComet (version 1.0)
@@ -6,7 +6,8 @@ function [bool, warnString] = addComet(app)
 % Manually adding the selected comet to a class.
 %
 % INPUT:
-%   app                 Handles of the application.
+%   app                 Handles of the application
+%   classID             Target class to add new element
 %
 % OUTPUT:
 %   bool                Succes indicator bool
@@ -87,12 +88,10 @@ if isempty(Inds)
     return
 end
 
-ClassID = app.comet_handles.ClassID;
-
 ImgComposedCh1(Inds) = ImgROIcomposedCh1(Inds);
 ImgComposedCh2(Inds) = ImgROIcomposedCh2(Inds);
 ImgComposedCh3(Inds) = ImgROIcomposedCh3(Inds);
-ImgComposedCh4(Inds) = ClassID;
+ImgComposedCh4(Inds) = classID;
 Imgs_Composed(:, :, 1) = ImgComposedCh1;
 Imgs_Composed(:, :, 2) = ImgComposedCh2;
 Imgs_Composed(:, :, 3) = ImgComposedCh3;
