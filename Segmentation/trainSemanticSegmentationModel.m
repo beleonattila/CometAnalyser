@@ -50,16 +50,16 @@ labelDir = fullfile(baseFolder,'Masks');
 
 if isempty(dir(fullfile(imgDir,'*.png'))) || isempty(dir(fullfile(labelDir,'*.png')))
     message = ['The selected folder does not contain annotated data.\n',...
-                'Image files are missing from subfolder.\n'...
-                '(Regquired extension is PNG)'];
+                'Image files are missing from subfolder\n'...
+                '(regquired extension is PNG)'];
     return
 end
 
 imds = imageDatastore(imgDir);
 if numel(imds.Files)<6
     message = ['Not enough training sample.\n',...
-                'Please annotate more images for the sake of reliable result.\n'...
-                '(Minimum requirement is 6 images with labels.)'];
+                'Please annotate more images for the sake of reliable result\n'...
+                '(minimum requirement is 6 images with labels)'];
     return
 end
 

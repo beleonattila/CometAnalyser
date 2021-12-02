@@ -25,7 +25,7 @@ if ~isempty(ids)
         head = app.comet_handles.Imgs_Composed(:,:,3,ids(i));
         head(~tail) = 0;
         head(head<255) = 0;
-        tail = tail * 127;
+        tail(tail>0) = 127;
         combined = tail + head;
         tempSplitName = strsplit(imNames{ids(i)},['.',inExt]);
         imwrite(combined,fullfile(path, maskFolderName,[tempSplitName{1},outExt]))
