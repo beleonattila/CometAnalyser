@@ -1,4 +1,4 @@
-function [bool, warnString] = addComet(app,classID)
+function [bool, warnString] = addComet(app,className)
 % AUTHOR: Attila Beleon (E-mail: beleonattila@gmail.com)
 % DATE: April 22, 2021
 % NAME: addComet (version 1.0)
@@ -47,12 +47,12 @@ end
 
 MaskHead = app.comet_handles.MaskHead;
 MaskComet = app.comet_handles.MaskComet;
-flag_CurrentCometType = app.comet_handles.flag_CurrentCometType;
+% flag_CurrentCometType = app.comet_handles.flag_CurrentCometType;
 ROI_ULCyx_DRCyx = app.comet_handles.ROI_ULCyx_DRCyx;
 ULC_Yrow_roi = ROI_ULCyx_DRCyx(1,1); ULC_Xcol_roi = ROI_ULCyx_DRCyx(1,2); DRC_Yrow_roi = ROI_ULCyx_DRCyx(1,3); DRC_Xcol_roi = ROI_ULCyx_DRCyx(1,4);
 IndImgShown = app.comet_handles.IndImgShown;
 Imgs_Composed = app.comet_handles.Imgs_Composed(:,:,:,IndImgShown);
-ROIori = app.comet_handles.ROIori;
+% ROIori = app.comet_handles.ROIori;
 
 % To delete external pixels in case of perfect fit.
 flag_CometFitFreehand = app.comet_handles.flag_CometFitFreehand;
@@ -65,7 +65,7 @@ if flag_CometFitFreehand == 1
         MaskComet(ROIsegm==0)=0;
     end
 end
-
+classID = app.comet_handles.Classes.(className).ID;
 ROIcomposed = app.scope.ImageSource;
 
 [rowI, colI, ~] = size(Imgs_Composed);
@@ -102,7 +102,6 @@ Imgs_Composed(:, :, 4) = ImgComposedCh4;
 
 thumbnailCoor = [min(maskRow), max(maskCol);...
     max(maskRow), min(maskCol)];
-className = app.pop_class.Value;
 
 if app.comet_handles.Classes.(className).num_el < 1
     upcomingIdx = 1;
