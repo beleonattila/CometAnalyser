@@ -41,7 +41,7 @@ for i = 1:app.comet_handles.NumImages
         coor = [yend(1), xend(1)];
         [iscomplete, errorString] = clickOnCometSelection(app, coor);
         if iscomplete == 1
-            [bool, warnString] = addComet(app);
+            [bool, warnString] = addComet(app,'Unclassified');
             if bool == 0
                 appTextDlg(app, warnString, 'Message', 'error')
                 continue
@@ -60,6 +60,7 @@ for i = 1:app.comet_handles.NumImages
         end
     end
 end
+if ishandle(wb), close(wb), end
 app.comet_handles.IndImgShown = currentImShown;
 app.axes1.Children.CData = uint8(app.comet_handles.Imgs_Composed(:,:,1:3,app.comet_handles.IndImgShown));
 bool = 1;
