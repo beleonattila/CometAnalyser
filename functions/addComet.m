@@ -28,7 +28,7 @@ function [bool, warnString] = addComet(app,className)
 warnString = [];
 bool = 0;
 if strcmp(app.pop_class.Value,'~No Class~')
-    warnString = 'Create a class first!';
+    warnString = {'Create a class first!'};
     return
 end
 
@@ -39,7 +39,7 @@ if ~isempty(app.selectedComet) % If the comet is presegmented
 %     if classIdx < 255 % If the comet is manually segmented (Red & Blue)
         [bool2, warnString] = removeComet(app);
         if bool2 == 0
-            warnString = 'Failed to remove comet from previous class.';
+            warnString = {'Failed to remove comet from previous class.'};
             return
         end
 %     end
@@ -84,7 +84,7 @@ ImgMaskInd(ULC_Yrow_roi:DRC_Yrow_roi, ULC_Xcol_roi:DRC_Xcol_roi) = MaskComet;
 Inds = find(ImgMaskInd==1);
 
 if isempty(Inds)
-    warnString = 'No comet has been selected.';
+    warnString = {'No comet has been selected.'};
     return
 end
 

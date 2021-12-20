@@ -57,7 +57,7 @@ if ~strcmp(app.selectedComet.className,'Unclassified')
             end
         end
         if memberIdx == 0
-            warnString = 'Corrupted class structure!';
+            warnString = {'Corrupted class structure!'};
             return
         end
         app.comet_handles.Classes.(app.selectedComet.className).Members(memberIdx)= [];

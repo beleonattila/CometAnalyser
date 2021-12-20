@@ -22,10 +22,9 @@ cols = 4;
 margin = 0.05 * axesWidth;
 sepsize = 0.05 * axesWidth; %Distance Between thumbnails
 classNames = fieldnames(Classes);
-classNames = setdiff(classNames,'Unclassified');
 imSize = ceil(((axesWidth - (2*margin)) - ((cols-1)*sepsize))/cols); % Catalog image size
 backGround = 240;
-
+classCatalog = cell(numel(classNames),3);
 for cl = 1:numel(classNames)
     
     numimgs = Classes.(classNames{cl}).num_el;
@@ -34,7 +33,7 @@ for cl = 1:numel(classNames)
     compImgs = uint8(zeros(height,axesWidth, 2));
     compImgs(:,:,1) = (compImgs(:,:,1)+1)*backGround;
     
-    mapping = {};
+    mapping = cell(ceil(numimgs/cols),cols);
     x = 1;
     y = 1;
     for i = 1:numimgs
@@ -76,12 +75,10 @@ for cl = 1:numel(classNames)
         end
         subimgmeta.CellNumber = i;
         subimgmeta.ImName = Classes.(classNames{cl}).Members(i).ImName;
-        %         subimgmeta.OriginalImageName = classImg.OriginalImageName;
         mapping{y,x} = subimgmeta;
         x = x + 1;
     end
     classCatalog{cl,1} = classNames{cl};
     classCatalog{cl,2} = compImgs;
     classCatalog{cl,3} = mapping;
-end
 end

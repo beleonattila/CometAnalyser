@@ -22,7 +22,7 @@ function [bool, message] = createUnclassifiedClassForGreens(app)
 % General Public License for more details.
 
 bool = 0;
-message = 'Process failed.';
+message = {'Process failed.'};
 
 currentImShown = app.comet_handles.IndImgShown;
 wb = waitbar(0,'Adding segmented comets to "Unclassified" class. Please wait...');

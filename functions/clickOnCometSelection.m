@@ -45,8 +45,8 @@ if classIdx < 255
             if isempty(idToShow)
                 idToShow = i;
             else
-                errorString = ['Selected coordinates have been found stored as coordinates of multipe class members!\n' ...
-                    '  Please contact the developer!'];
+                errorString = {'Selected coordinates have been found stored as coordinates of multipe class members!';...
+                    '  Please contact the developer!'};
                 return
             end
         end

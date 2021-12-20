@@ -40,8 +40,8 @@ message = [];
 baseFolder = path;
 
 if ~exist(fullfile(baseFolder,'Images'),'dir') || ~exist(fullfile(baseFolder,'Masks'),'dir')
-    message = ['The selected folder does not contain annotated data.\n',...
-                'It does not contain the two required subfolders named ''Images'' and ''Masks''.'];
+    message = {'The selected folder does not contain annotated data.';...
+                'It does not contain the two required subfolders named ''Images'' and ''Masks''.'};
     return
 end
 
@@ -49,17 +49,17 @@ imgDir = fullfile(baseFolder,'Images');
 labelDir = fullfile(baseFolder,'Masks');
 
 if isempty(dir(fullfile(imgDir,'*.png'))) || isempty(dir(fullfile(labelDir,'*.png')))
-    message = ['The selected folder does not contain annotated data.\n',...
-                'Image files are missing from subfolder\n'...
-                '(regquired extension is PNG)'];
+    message = {'The selected folder does not contain annotated data.';...
+                'Image files are missing from subfolder';...
+                '(regquired extension is PNG)'};
     return
 end
 
 imds = imageDatastore(imgDir);
 if numel(imds.Files)<6
-    message = ['Not enough training sample.\n',...
-                'Please annotate more images for the sake of reliable result\n'...
-                '(minimum requirement is 6 images with labels)'];
+    message = {'Not enough training sample.';...
+                'Please annotate more images for the sake of reliable result';...
+                '(minimum requirement is 6 images with labels)'};
     return
 end
 

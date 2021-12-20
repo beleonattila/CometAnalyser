@@ -53,7 +53,7 @@ try
     % Check on the minimum number of pixels of the ROI selected
     if ~isvalid(hFigFree2) || numel(find(createMask(hFigFree2)==1))<=app.comet_handles.ROIminNumPixels
         iscomplete = 0;
-        errorString = 'The selected region is too small!';
+        errorString = {'The selected region is too small!'};
         if exist('hFigFree2', 'var'); delete(hFigFree2); end
     else
         PartialMask = createMask( hFigFree2 );
@@ -76,7 +76,7 @@ try
         
         if bool == 0
             if isempty(errorString)
-                errorString = 'No comet has been detected.';
+                errorString = {'No comet has been detected.'};
             end
             iscomplete = 0;
             return
@@ -85,5 +85,5 @@ try
     end
 catch ME
     iscomplete = 0;
-    errorString = ['Wrong segmentation. \n\nError description:\n' ME.message];
+    errorString = {'Wrong segmentation.';'';'';'Error description:';'';ME.message};
 end

@@ -36,7 +36,7 @@ ImgShown = app.comet_handles.Imgs_Stretched(:,:,1,IndImgShown);
 ROIori = ImgShown(BB(1,1):BB(2,1),BB(2,2):BB(1,2));
 if all(ROIori(:)==0) || all(ROIori(:)==255)
     bool = 0;
-    errorString = 'No comet was found in the region.';
+    errorString = {'No comet was found in the region.'};
     return
 end
 
@@ -122,7 +122,8 @@ if length(classIdx) == 1
             if isempty(idToShow)
                 idToShow = thumbIterator;
             else
-                errorString = 'Selected coordinates have been found stored as coordinates of multipe class members!\n Please contact the developer!';
+                errorString = {'Selected coordinates have been found stored as coordinates of multipe class members!';...
+                                'Please contact the developer!'};
                 bool = 0;
                 return
             end
@@ -134,7 +135,7 @@ if length(classIdx) == 1
         app.selectedComet.className = classNames{classIdx};
         app.selectedComet.param = membersOnThisImage(idToShow);
     else
-        errorString = 'The selected region might touch a classified object. Please select another region!';
+        errorString = {'The selected region might touch a classified object. Please select another region!'};
         bool = 0;
         return
     end
@@ -153,7 +154,8 @@ elseif isempty(classIdx)
         app.comet_handles.ROI_ULCyx_DRCyx = [BB2(1,1),BB2(2,2),BB2(2,1),BB2(1,2)];
     end
 else
-    errorString = 'Multiple class IDs have been found in the selected region.\n Please contact the developer!';
+    errorString = {'Multiple class IDs have been found in the selected region.';...
+                    'Please contact the developer!'};
     return
 end
 app.scope.ImageSource = uint8(ROIcomposed);

@@ -49,7 +49,7 @@ end
 
 % monochrome images need monochrome text, colour images need colour text
 if ndims(Image) == 2 %#ok<ISMAT>
-    Color = mean(Color(:));
+    Color = Color(1); % Modified from Filippo Piccinini filippo.piccinini85@gmail.com. It was "Color = mean(Color(:));", now it is "Color = Color(1);"
 end
 if ndims(Image) == 3 && numel(Color) == 1
     Color = [Color Color Color];

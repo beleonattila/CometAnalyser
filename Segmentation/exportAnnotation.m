@@ -17,7 +17,7 @@ if ~isempty(ids)
     splitName = strsplit(imNames{ids(1)},'.');
     inExt = splitName{end};
     outExt = '.png';
-    wb = waitbar(0,'Saving annotation. Please wait...')
+    wb = waitbar(0,'Saving annotation. Please wait...');
     n = length(ids);
     for i = 1:n
         greyScale = app.comet_handles.Imgs_Stretched(:,:,1,ids(i));
@@ -40,5 +40,5 @@ if ~isempty(ids)
     end
     helpdlg('Exportation accomplished!')
 else
-    message = 'There are no annotations in this dataset.';
+    message = {'There are no annotations in this dataset.'};
 end
