@@ -24,14 +24,14 @@ sepsize = 0.05 * axesWidth; %Distance Between thumbnails
 classNames = fieldnames(Classes);
 imSize = ceil(((axesWidth - (2*margin)) - ((cols-1)*sepsize))/cols); % Catalog image size
 backGround = 240;
-classCatalog = cell(numel(classNames),3);
+classCatalog = cell(numel(classNames),4);
 for cl = 1:numel(classNames)
     
     numimgs = Classes.(classNames{cl}).num_el;
     rows = ceil(numimgs / cols);
     height = (rows * imSize) + ((rows+1) * sepsize);
-    compImgs = uint8(zeros(height,axesWidth, 2));
-    compImgs(:,:,1) = (compImgs(:,:,1)+1)*backGround;
+    mainIm = uint8(ones(height,axesWidth, 1)*backGround);
+    idxIm = uint16(zeros(height,axesWidth, 1));
     
     mapping = cell(ceil(numimgs/cols),cols);
     x = 1;
@@ -67,11 +67,11 @@ for cl = 1:numel(classNames)
             padSize = ceil((imSize-minSizeOfImg)/2);
             padDirection = size(resImg)== minSizeOfImg;
             paddedImage = padarray(resImg,(padDirection*padSize), backGround);
-            compImgs(offseth:offseth+imSize-1,offsetw:offsetw+imSize-1,1) = paddedImage(1:imSize,1:imSize);
-            compImgs(offseth:offseth+imSize-1,offsetw:offsetw+imSize-1,2) = i;
+            mainIm(offseth:offseth+imSize-1,offsetw:offsetw+imSize-1) = paddedImage(1:imSize,1:imSize);
+            idxIm(offseth:offseth+imSize-1,offsetw:offsetw+imSize-1) = i;
         else
-            compImgs(offseth:offseth+imSize-1,offsetw:offsetw+imSize-1,1) = resImg;
-            compImgs(offseth:offseth+imSize-1,offsetw:offsetw+imSize-1,2) = i;
+            mainIm(offseth:offseth+imSize-1,offsetw:offsetw+imSize-1) = resImg;
+            idxIm(offseth:offseth+imSize-1,offsetw:offsetw+imSize-1) = i;
         end
         subimgmeta.CellNumber = i;
         subimgmeta.ImName = Classes.(classNames{cl}).Members(i).ImName;
@@ -79,6 +79,7 @@ for cl = 1:numel(classNames)
         x = x + 1;
     end
     classCatalog{cl,1} = classNames{cl};
-    classCatalog{cl,2} = compImgs;
+    classCatalog{cl,2} = mainIm;
     classCatalog{cl,3} = mapping;
+    classCatalog{cl,4} = idxIm;
 end

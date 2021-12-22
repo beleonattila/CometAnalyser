@@ -34,6 +34,13 @@ bool = 0;
 try
     message = {'Loading the model, please wait...'};
     dlgHandle = msgbox(sprintf(message{:}),'Training','help');
+    sysMem = memory;
+    modelFileInfo = dir(app.comet_handles.segmentationOptions.modelPath);
+    if sysMem.MaxPossibleArrayBytes < modelFileInfo.bytes
+        bool = 0;
+        message = {'Not enough memory to load the Pre-trained Neural Network for segmentation.'};
+        return
+    end
     load(app.comet_handles.segmentationOptions.modelPath);
     if isempty(who('net'))
         if ishandle(dlgHandle), close(dlgHandle), end
@@ -51,12 +58,10 @@ catch me
     if ishandle(dlgHandle), close(dlgHandle), end
     dlgHandle = msgbox(sprintf(me.message),'Training','error');
     uiwait(dlgHandle)
-    message = {'Invalid model. Please select a valid model in Segmentation Option menu, then try again!'};
+    message = {'Invalid model. Please select a valid model in Segmentation Training Option menu, then try again!'};
     return
 end
 if ishandle(dlgHandle), close(dlgHandle), end
-
-
 
 idx = zeros(app.comet_handles.NumImages,1);
 if strcmp(method, 'single')
@@ -84,21 +89,45 @@ if ~any(idx)
         message = {'The current image contains annotations: it will be not analysed'};
     else
         message = {'There is no blank image to do segmentation.';...
-                    '';...
-                    'Segmentation only works on images with out annotation'};
+                    'Segmentation only works on images without annotation'};
     end
     return
 end
+
+sysMem = memory;
+memoryRequirement = numel(app.comet_handles.Imgs_Stretched(:,:,1,idx))*5;
+
+if sysMem.MaxPossibleArrayBytes < memoryRequirement
+    bool = 0;
+    message = {'Not enough memory to perform segmentation on all images at once.'};
+    return
+end
+
 tempIm = app.comet_handles.Imgs_Stretched(:,:,1,idx);
 I = cat(3,tempIm,tempIm,tempIm);
+clear('tempIm');
 
 inputSize = net.Layers(1).InputSize;
-imageSize = size(I);
-
+OrigImageSize = size(I);
+imageSize = OrigImageSize;
+padSize = zeros(1,2);
 if any(inputSize(1:2) ~= imageSize(1:2))
-    warndlg('The image size in this project not identical with the ipnut size of the segmentational model, which can cause performance drop.');
+
+    warndlg('The image size in this project is not identical to the input size of the segmentational model. This can cause performance drop.');
     imSizeDiff = inputSize(1:2) - imageSize(1:2);
-    padSize = zeros(1,2);
+    
+    % If the project images are larger
+    if any(imSizeDiff<0)
+        [~,ImMinIdx] = min(imSizeDiff);
+        imScaler = [nan nan];
+        imScaler(ImMinIdx) = inputSize(ImMinIdx);
+        I = imresize(I,imScaler);
+        imageSize = size(I);
+        imSizeDiff = inputSize(1:2) - imageSize(1:2);
+    end
+    
+    % If the project images are smaller
+    
     if imSizeDiff(1)
         if imSizeDiff(1)>0
             padSize(1) = imSizeDiff(1);
@@ -122,7 +151,10 @@ uiprogressdlg(progressfig,'Title','Performing prediction. Please wait...',...
 pause(2)
 
 [C, ~, ~] = semanticseg(I, net);
+clear('net')
+clear('I')
 C8 = uint8(C);
+clear('C')
 if any(padSize)
     if padSize(1)
         C8(1:round(padSize(1)./2),:,:) = [];
@@ -133,7 +165,7 @@ if any(padSize)
         C8(:,end-round(padSize(2)./2):end,:) = [];
     end
 end
-C8 = imresize(C8,imageSize(1:2));
+C8 = imresize(C8,OrigImageSize(1:2));
 C8(C8 == 3) = 0;
 BW = imbinarize(C8);
 BW_fill = imfill(BW, 4, 'holes');
@@ -146,7 +178,7 @@ green(C8==1) = 0;
 magenta = C8;
 magenta(C8 == 1) = 255;
 magenta(magenta~=255) = 0;
-
+clear('C8')
 
 app.comet_handles.Imgs_Composed(:,:,2,idx) = app.comet_handles.Imgs_Composed(:,:,2,idx) + permute(green,[1 2 4 3]);
 app.comet_handles.Imgs_Composed(:,:,1,idx) = app.comet_handles.Imgs_Composed(:,:,1,idx) + permute(magenta,[1 2 4 3]);
