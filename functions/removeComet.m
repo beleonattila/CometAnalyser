@@ -40,7 +40,7 @@ Imgs_Composed(coor(1,1):coor(2,1), coor(2,2):coor(1,2), 1) = ROIorig;
 Imgs_Composed(coor(1,1):coor(2,1), coor(2,2):coor(1,2), 2) = ROIorig;
 Imgs_Composed(coor(1,1):coor(2,1), coor(2,2):coor(1,2), 3) = ROIorig;
 
-if ~strcmp(app.selectedComet.className,'Unclassified')
+if ~strcmp(app.selectedComet.className,'Prediction')
     numOfMembers = app.comet_handles.Classes.(app.selectedComet.className).num_el;
     if numOfMembers <= 1
         app.comet_handles.Classes.(app.selectedComet.className).Members = [];

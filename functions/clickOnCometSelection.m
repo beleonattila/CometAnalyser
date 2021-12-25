@@ -71,7 +71,7 @@ else
     app.selectedComet.param.mask = BW2(BB(1,1):BB(2,1),BB(2,2):BB(1,2));
     app.selectedComet.param.thumbnailCoor = BB;
     app.selectedComet.param.ImID = IndImgShown;
-    app.selectedComet.className = 'Unclassified';
+    app.selectedComet.className = 'Prediction';
     [bool, errorString] = ROI_processing(app, BB, [], app.selectedComet.param);
     if bool == 0
         return

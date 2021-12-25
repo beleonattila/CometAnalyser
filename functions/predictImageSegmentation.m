@@ -31,26 +31,30 @@ function [bool, message] = predictImageSegmentation(app,method)
 % General Public License for more details.
 
 bool = 0;
+[folderName, ~, ext] = fileparts(app.comet_handles.segmentationOptions.modelPath);
+result = isfolder(folderName);
+if ~result || ~strcmp(ext,'.mat')
+    message = {'Invalid segmentation model. Please select a valid model, then try again!'};
+    return
+end
 try
     message = {'Loading the model, please wait...'};
     dlgHandle = msgbox(sprintf(message{:}),'Training','help');
     sysMem = memory;
     modelFileInfo = dir(app.comet_handles.segmentationOptions.modelPath);
     if sysMem.MaxPossibleArrayBytes < modelFileInfo.bytes
-        bool = 0;
         message = {'Not enough memory to load the Pre-trained Neural Network for segmentation.'};
         return
     end
     load(app.comet_handles.segmentationOptions.modelPath);
     if isempty(who('net'))
         if ishandle(dlgHandle), close(dlgHandle), end
-        message = {'Invalid model. Please select a valid model, then try again!'};
+        message = {'Invalid segmentation model. Please select a valid model, then try again!'};
         dlgHandle = msgbox(sprintf(message{:}),'Training','help');
         uiwait(dlgHandle)
         [fileName, path] = uigetfile('Select a pre-trained model!');
         if ischar(path)
             app.comet_handles.segmentationOptions.modelPath = fullfile(path,fileName);
-            bool = 1;
             return
         end
     end
@@ -94,99 +98,195 @@ if ~any(idx)
     return
 end
 
-sysMem = memory;
 memoryRequirement = numel(app.comet_handles.Imgs_Stretched(:,:,1,idx))*5;
+imByIm = 0;
 
-if sysMem.MaxPossibleArrayBytes < memoryRequirement
-    bool = 0;
-    message = {'Not enough memory to perform segmentation on all images at once.'};
-    return
+tGPU = gpuDeviceTable;
+if ~isempty(tGPU)
+    indx = tGPU.DeviceSelected == true;
+    D = gpuDevice(indx);
+    if D.AvailableMemory < memoryRequirement
+        imByIm = 1;
+    end
+else
+    sysMem = memory;
+    if sysMem.MaxPossibleArrayBytes < memoryRequirement
+        imByIm = 1;
+%         bool = 0;
+%         message = {'Not enough memory to perform segmentation on all images at once.'};
+%         return
+    end
 end
-
-tempIm = app.comet_handles.Imgs_Stretched(:,:,1,idx);
-I = cat(3,tempIm,tempIm,tempIm);
-clear('tempIm');
 
 inputSize = net.Layers(1).InputSize;
-OrigImageSize = size(I);
-imageSize = OrigImageSize;
-padSize = zeros(1,2);
-if any(inputSize(1:2) ~= imageSize(1:2))
-
-    warndlg('The image size in this project is not identical to the input size of the segmentational model. This can cause performance drop.');
-    imSizeDiff = inputSize(1:2) - imageSize(1:2);
+OrigImageSize = size(app.comet_handles.Imgs_Stretched(:,:,1,1));
     
-    % If the project images are larger
-    if any(imSizeDiff<0)
-        [~,ImMinIdx] = min(imSizeDiff);
-        imScaler = [nan nan];
-        imScaler(ImMinIdx) = inputSize(ImMinIdx);
-        I = imresize(I,imScaler);
-        imageSize = size(I);
+if imByIm == 0
+    
+    tempIm = app.comet_handles.Imgs_Stretched(:,:,1,idx);
+    I = cat(3,tempIm,tempIm,tempIm);
+    clear('tempIm');
+    
+    imageSize = OrigImageSize;
+    padSize = zeros(1,2);
+    if any(inputSize(1:2) ~= imageSize(1:2))
+        
+        warndlg('The image size in this project is not identical to the input size of the segmentation model. This can cause performance drop.');
         imSizeDiff = inputSize(1:2) - imageSize(1:2);
-    end
-    
-    % If the project images are smaller
-    
-    if imSizeDiff(1)
-        if imSizeDiff(1)>0
-            padSize(1) = imSizeDiff(1);
+        
+        % If the project images are larger
+        if any(imSizeDiff<0)
+            [~,ImMinIdx] = min(imSizeDiff);
+            imScaler = [nan nan];
+            imScaler(ImMinIdx) = inputSize(ImMinIdx);
+            I = imresize(I,imScaler);
+            imageSize = size(I);
+            imSizeDiff = inputSize(1:2) - imageSize(1:2);
         end
+        
+        % If the project images are smaller
+        
+        if imSizeDiff(1)
+            if imSizeDiff(1)>0
+                padSize(1) = imSizeDiff(1);
+            end
+        end
+        
+        if imSizeDiff(2)
+            if imSizeDiff(2)>0
+                padSize(2) = imSizeDiff(2);
+            end
+        end
+        
+        I = padarray(I,round(padSize./2),0,'both');
+        I = imresize(I,inputSize(1:2));
     end
     
-    if imSizeDiff(2)
-        if imSizeDiff(2)>0
-            padSize(2) = imSizeDiff(2);
-        end
-    end
-
-    I = padarray(I,round(padSize./2),0,'both');
-    I = imresize(I,inputSize(1:2));
-end
-
-
-progressfig = uifigure;
-uiprogressdlg(progressfig,'Title','Performing prediction. Please wait...',...
+    
+    progressfig = uifigure;
+    uiprogressdlg(progressfig,'Title','Performing prediction. Please wait...',...
         'Indeterminate','on');
-pause(2)
-
-[C, ~, ~] = semanticseg(I, net);
-clear('net')
-clear('I')
-C8 = uint8(C);
-clear('C')
-if any(padSize)
-    if padSize(1)
-        C8(1:round(padSize(1)./2),:,:) = [];
-        C8(end-round(padSize(1)./2):end,:,:) = [];
+    pause(2)
+    
+    [C, ~, ~] = semanticseg(I, net);
+    clear('net')
+    clear('I')
+    C8 = uint8(C);
+    clear('C')
+    if any(padSize)
+        if padSize(1)
+            C8(1:round(padSize(1)./2),:,:) = [];
+            C8(end-round(padSize(1)./2):end,:,:) = [];
+        end
+        if padSize(2)
+            C8(:,1:round(padSize(2)./2),:) = [];
+            C8(:,end-round(padSize(2)./2):end,:) = [];
+        end
     end
-    if padSize(2)
-        C8(:,1:round(padSize(2)./2),:) = [];
-        C8(:,end-round(padSize(2)./2):end,:) = [];
+    C8 = imresize(C8,OrigImageSize(1:2));
+    C8(C8 == 3) = 0;
+    BW = imbinarize(C8);
+    BW_fill = imfill(BW, 4, 'holes');
+    BW_open = bwareaopen(BW_fill,250,4);
+    se = strel('disk',20);
+    BW2 = imclose(BW_open,se);
+    C8(~BW2) = 0;
+    green = uint8(BW2) * 255;
+    green(C8==1) = 0;
+    magenta = C8;
+    magenta(C8 == 1) = 255;
+    magenta(magenta~=255) = 0;
+    clear('C8')
+    
+    app.comet_handles.Imgs_Composed(:,:,2,idx) = app.comet_handles.Imgs_Composed(:,:,2,idx) + permute(green,[1 2 4 3]);
+    app.comet_handles.Imgs_Composed(:,:,1,idx) = app.comet_handles.Imgs_Composed(:,:,1,idx) + permute(magenta,[1 2 4 3]);
+    app.comet_handles.Imgs_Composed(:,:,3,idx) = app.comet_handles.Imgs_Composed(:,:,3,idx) + permute(magenta,[1 2 4 3]);
+    app.comet_handles.Imgs_Composed(:,:,4,idx) = app.comet_handles.Imgs_Composed(:,:,4,idx) + permute(magenta,[1 2 4 3]) + permute(green,[1 2 4 3]);
+    
+    delete(progressfig)
+else
+    wb = waitbar(0,'Segmentation in progress. Please wait...');
+    numIm2Segmentation = sum(idx);
+    idx2 = find(idx);
+    for i = 1:sum(idx)
+        tempIm = app.comet_handles.Imgs_Stretched(:,:,1,idx2(i));
+        I = cat(3,tempIm,tempIm,tempIm);
+        clear('tempIm');
+        
+        imageSize = OrigImageSize;
+        padSize = zeros(1,2);
+        if any(inputSize(1:2) ~= imageSize(1:2))
+            if i == 1
+                warndlg('The image size in this project is not identical to the input size of the segmentation model. This can cause performance drop.');
+            end
+            imSizeDiff = inputSize(1:2) - imageSize(1:2);
+            
+            % If the project images are larger
+            if any(imSizeDiff<0)
+                [~,ImMinIdx] = min(imSizeDiff);
+                imScaler = [nan nan];
+                imScaler(ImMinIdx) = inputSize(ImMinIdx);
+                I = imresize(I,imScaler);
+                imageSize = size(I);
+                imSizeDiff = inputSize(1:2) - imageSize(1:2);
+            end
+            
+            % If the project images are smaller
+            
+            if imSizeDiff(1)
+                if imSizeDiff(1)>0
+                    padSize(1) = imSizeDiff(1);
+                end
+            end
+            
+            if imSizeDiff(2)
+                if imSizeDiff(2)>0
+                    padSize(2) = imSizeDiff(2);
+                end
+            end
+            
+            I = padarray(I,round(padSize./2),0,'both');
+            I = imresize(I,inputSize(1:2));
+        end
+        
+        [C, ~, ~] = semanticseg(I, net);
+        clear('I')
+        C8 = uint8(C);
+        clear('C')
+        if any(padSize)
+            if padSize(1)
+                C8(1:round(padSize(1)./2),:,:) = [];
+                C8(end-round(padSize(1)./2):end,:,:) = [];
+            end
+            if padSize(2)
+                C8(:,1:round(padSize(2)./2),:) = [];
+                C8(:,end-round(padSize(2)./2):end,:) = [];
+            end
+        end
+        C8 = imresize(C8,OrigImageSize(1:2));
+        C8(C8 == 3) = 0;
+        BW = imbinarize(C8);
+        BW_fill = imfill(BW, 4, 'holes');
+        BW_open = bwareaopen(BW_fill,250,4);
+        se = strel('disk',20);
+        BW2 = imclose(BW_open,se);
+        C8(~BW2) = 0;
+        green = uint8(BW2) * 255;
+        green(C8==1) = 0;
+        magenta = C8;
+        magenta(C8 == 1) = 255;
+        magenta(magenta~=255) = 0;
+        clear('C8')
+        
+        app.comet_handles.Imgs_Composed(:,:,2,idx2(i)) = app.comet_handles.Imgs_Composed(:,:,2,idx2(i)) + permute(green,[1 2 4 3]);
+        app.comet_handles.Imgs_Composed(:,:,1,idx2(i)) = app.comet_handles.Imgs_Composed(:,:,1,idx2(i)) + permute(magenta,[1 2 4 3]);
+        app.comet_handles.Imgs_Composed(:,:,3,idx2(i)) = app.comet_handles.Imgs_Composed(:,:,3,idx2(i)) + permute(magenta,[1 2 4 3]);
+        app.comet_handles.Imgs_Composed(:,:,4,idx2(i)) = app.comet_handles.Imgs_Composed(:,:,4,idx2(i)) + permute(magenta,[1 2 4 3]) + permute(green,[1 2 4 3]);
+        if ishandle(wb)
+            waitbar(i/numIm2Segmentation,wb,sprintf('Segmentation in progress. Please wait...\n %d / %d',[i,numIm2Segmentation]))
+        end
     end
 end
-C8 = imresize(C8,OrigImageSize(1:2));
-C8(C8 == 3) = 0;
-BW = imbinarize(C8);
-BW_fill = imfill(BW, 4, 'holes');
-BW_open = bwareaopen(BW_fill,250,4);
-se = strel('disk',20);
-BW2 = imclose(BW_open,se);
-C8(~BW2) = 0;
-green = uint8(BW2) * 255;
-green(C8==1) = 0;
-magenta = C8;
-magenta(C8 == 1) = 255;
-magenta(magenta~=255) = 0;
-clear('C8')
-
-app.comet_handles.Imgs_Composed(:,:,2,idx) = app.comet_handles.Imgs_Composed(:,:,2,idx) + permute(green,[1 2 4 3]);
-app.comet_handles.Imgs_Composed(:,:,1,idx) = app.comet_handles.Imgs_Composed(:,:,1,idx) + permute(magenta,[1 2 4 3]);
-app.comet_handles.Imgs_Composed(:,:,3,idx) = app.comet_handles.Imgs_Composed(:,:,3,idx) + permute(magenta,[1 2 4 3]);
-app.comet_handles.Imgs_Composed(:,:,4,idx) = app.comet_handles.Imgs_Composed(:,:,4,idx) + permute(magenta,[1 2 4 3]) + permute(green,[1 2 4 3]);
-
-delete(progressfig)
-
 message = {'Segmentation done.';...
             '';...
             [num2str(sum(idx)),' image(s) have been segmented.']};
