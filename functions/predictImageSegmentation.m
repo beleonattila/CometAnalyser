@@ -100,21 +100,33 @@ end
 
 memoryRequirement = numel(app.comet_handles.Imgs_Stretched(:,:,1,idx))*5;
 imByIm = 0;
-
-tGPU = gpuDeviceTable;
-if ~isempty(tGPU)
-    indx = tGPU.DeviceSelected == true;
-    D = gpuDevice(indx);
-    if D.AvailableMemory < memoryRequirement
-        imByIm = 1;
+env = app.comet_handles.segmentationOptions.ExecutionEnvironment;
+if strcmp(env,'auto') || strcmp(env,'gpu') || strcmp(env,'multi-gpu')
+    tGPU = gpuDeviceTable;
+    if ~isempty(tGPU)
+        indx = tGPU.DeviceAvailable == true;
+        if sum(indx) > 0
+            imByIm = 1;
+        else
+            message = {'There is no GPU available.'};
+            warndlg(message,'Environment')
+            sysMem = memory;
+            if sysMem.MaxPossibleArrayBytes < memoryRequirement
+                imByIm = 1;
+            end
+        end
+    else
+        message = {'There is no GPU available.'};
+        warndlg(message,'Environment')
+        sysMem = memory;
+        if sysMem.MaxPossibleArrayBytes < memoryRequirement
+            imByIm = 1;
+        end
     end
-else
+elseif strcmp(env,'cpu')
     sysMem = memory;
     if sysMem.MaxPossibleArrayBytes < memoryRequirement
         imByIm = 1;
-%         bool = 0;
-%         message = {'Not enough memory to perform segmentation on all images at once.'};
-%         return
     end
 end
 
@@ -286,6 +298,7 @@ else
             waitbar(i/numIm2Segmentation,wb,sprintf('Segmentation in progress. Please wait...\n %d / %d',[i,numIm2Segmentation]))
         end
     end
+    if ishandle(wb), close(wb), end
 end
 message = {'Segmentation done.';...
             '';...
