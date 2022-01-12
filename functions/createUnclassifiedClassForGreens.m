@@ -8,6 +8,8 @@ function [bool, message] = createUnclassifiedClassForGreens(app)
 %
 % INPUT:
 %   app                 Handles of the application.
+%   classID             numeric value [1 255], represent the ID of class on
+%                       channel 4
 %
 %
 % Copyright © 2021 Filippo Piccinini
@@ -63,4 +65,6 @@ end
 if ishandle(wb), close(wb), end
 app.comet_handles.IndImgShown = currentImShown;
 app.axes1.Children.CData = uint8(app.comet_handles.Imgs_Composed(:,:,1:3,app.comet_handles.IndImgShown));
+set(app.text_Num,'Text', ['Image: ' num2str(currentImShown) '/' num2str(app.comet_handles.NumImages)]);
+set(app.text_Name,'Text', ['Image: ' char(app.comet_handles.ImgsNames{currentImShown})]);
 bool = 1;
