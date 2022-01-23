@@ -83,8 +83,8 @@ if isempty(cometProp)
 else % The selected comet have been segmented and classified already.
     
     % Calclating an enlarged bounding box
-    xRadius = floor(BB(2,1) - BB(1,1));
-    yRadius = floor(BB(1,2) - BB(2,2));
+    xRadius = floor((BB(2,1) - BB(1,1))*1.5);
+    yRadius = floor((BB(1,2) - BB(2,2))*1.5);
     [w, h, ~] = size(app.comet_handles.Imgs_Composed(:,:, 1, IndImgShown));
     
     xL = max(1,BB(1,1)-xRadius);
@@ -99,13 +99,18 @@ else % The selected comet have been segmented and classified already.
     ROIoriFiltered = ImgShownFiltered(BB2(1,1):BB2(2,1),BB2(2,2):BB2(1,2));
     fakeIm = uint8(zeros(w, h));
     fakeIm(BB(1,1):BB(2,1),BB(2,2):BB(1,2)) = uint8(cometProp.mask);
+    classLayer = app.comet_handles.Imgs_Composed(BB2(1,1):BB2(2,1),BB2(2,2):BB2(1,2), 4, IndImgShown);
     MaskComet = fakeIm(BB2(1,1):BB2(2,1),BB2(2,2):BB2(1,2));
     MaskHead = app.comet_handles.Imgs_Composed(BB2(1,1):BB2(2,1),BB2(2,2):BB2(1,2), 3, IndImgShown);
     MaskHead = MaskHead .* MaskComet;
     MaskHead(MaskHead<255) = 0;
     MaskHead(MaskHead == 255) = 1;
-    SE = strel('rectangle',[xRadius, yRadius]);
-    ROIsegm = imdilate(MaskComet, SE);
+    neigboursMask = classLayer .* uint8(imcomplement(imbinarize(MaskComet)));
+    SE = strel('ball',3,3);
+    neigboursMask = imdilate(neigboursMask,SE);
+    SE2 = strel('rectangle',[xRadius, yRadius]);
+    tempROIsegm = imdilate(MaskComet, SE2);
+    ROIsegm = tempROIsegm .* uint8(imcomplement(imbinarize(neigboursMask)));
     classIdx = [];
 end
 

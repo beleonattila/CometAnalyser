@@ -30,15 +30,21 @@ bool = 0;
 coor = app.selectedComet.param.thumbnailCoor;
 mask = app.selectedComet.param.mask;
 ImID = app.selectedComet.param.ImID;
-ROI = app.comet_handles.Imgs_Composed(coor(1,1):coor(2,1), coor(2,2):coor(1,2), 4, ImID);
-ROI(logical(mask)) = 0;
-Imgs_Composed = app.comet_handles.Imgs_Composed(:,:,:,ImID);
-Imgs_Composed(coor(1,1):coor(2,1), coor(2,2):coor(1,2), 4) = ROI;
+Imgs_Stretched = app.comet_handles.Imgs_Stretched(:, :, 1, ImID);
+Imgs_Composed1 = app.comet_handles.Imgs_Composed(:,:,1,ImID);
+Imgs_Composed2 = app.comet_handles.Imgs_Composed(:,:,2,ImID);
+Imgs_Composed3 = app.comet_handles.Imgs_Composed(:,:,3,ImID);
+Imgs_Composed4 = app.comet_handles.Imgs_Composed(:,:,4,ImID);
+[h,w] = size(Imgs_Composed1);
+blankIm = zeros(h,w);
+blankIm(coor(1,1):coor(2,1), coor(2,2):coor(1,2)) = mask;
+Idx = find(blankIm);
+Imgs_Composed1(Idx) = Imgs_Stretched(Idx);
+Imgs_Composed2(Idx) = Imgs_Stretched(Idx);
+Imgs_Composed3(Idx) = Imgs_Stretched(Idx);
+Imgs_Composed4(Idx) = 0;
 
-ROIorig = app.comet_handles.Imgs_Stretched(coor(1,1):coor(2,1), coor(2,2):coor(1,2), 1, ImID);
-Imgs_Composed(coor(1,1):coor(2,1), coor(2,2):coor(1,2), 1) = ROIorig;
-Imgs_Composed(coor(1,1):coor(2,1), coor(2,2):coor(1,2), 2) = ROIorig;
-Imgs_Composed(coor(1,1):coor(2,1), coor(2,2):coor(1,2), 3) = ROIorig;
+Imgs_Composed = cat(3,Imgs_Composed1,Imgs_Composed2,Imgs_Composed3,Imgs_Composed4);
 
 if ~strcmp(app.selectedComet.className,'Prediction')
     numOfMembers = app.comet_handles.Classes.(app.selectedComet.className).num_el;

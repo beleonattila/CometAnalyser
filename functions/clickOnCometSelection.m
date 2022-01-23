@@ -45,9 +45,12 @@ if classIdx < 255
             if isempty(idToShow)
                 idToShow = i;
             else
-                errorString = {'Selected coordinates have been found stored as coordinates of multipe class members!';...
-                    '  Please contact the developer!'};
-                return
+                fakeIm = zeros(app.comet_handles.ImageSize);
+                prevBB = membersOnThisImage(idToShow).thumbnailCoor;
+                fakeIm(prevBB(1,1):prevBB(2,1),prevBB(2,2):prevBB(1,2)) = membersOnThisImage(idToShow).mask;
+                if ~fakeIm(coor(2),coor(1))
+                    idToShow = i;
+                end
             end
         end
     end
