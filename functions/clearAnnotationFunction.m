@@ -13,40 +13,33 @@ function clearAnnotationFunction(app)
 %   green and pink colour from channel 1, 2 and 3
 %   Remove class label ID from Channel 4
 %
+
+% Copyright © 2022 Filippo Piccinini and Attila Beleon.
+% Contacts: filippo.piccinini85@gmail.com and beleonattila@gmail.com
+% All rights reserved.
+% 
+% CometAnalyser and all related material is licensed
+% under the: 3-clause BSD License.
 %
-% Copyright © 2021 Filippo Piccinini
-% Istituto Scientifico Romagnolo per lo Studio e la Cura dei Tumori (IRST)
-% IRCCS, Meldola (FC), Italy. All rights reserved.
-%
-% This program is free software; you can redistribute it and/or modify it
-% under the terms of the GNU General Public License version 2 (or higher)
-% as published by the Free Software Foundation. This program is
-% distributed WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-% General Public License for more details.
+% This software and all related material is provided by the copyright
+% holders and contributors "as is" and any express or implied warranties,
+% including, but not limited to, the implied warranties of merchantability
+% and fitness for a particular purpose are disclaimed. In no event shall
+% <copyright holder> be liable for any direct, indirect, incidental,
+% special, exemplary, or consequential damages (including, but not limited
+% to, procurement of substitute goods or services; loss of use, data, or
+% profits; or business interruption) however caused and on any theory of
+% liability, whether in contract, strict liability, or tort (including
+% negligence or otherwise) arising in any way out of the use of this
+% software, even if advised of the possibility of such damage.
 
 imIdx = app.comet_handles.IndImgShown;
-ImgNames = app.comet_handles.ImgsNames{imIdx};
-classIDsOnThisIm = setdiff(unique(app.comet_handles.Imgs_Composed(:,:,4,imIdx)),[0, 255]);
+classNames = fieldnames(app.comet_handles.Classes);
 
-if any(classIDsOnThisIm)
-    classStruct = app.comet_handles.Classes;
-    classNames = fieldnames(classStruct);
-    classID = zeros(numel(classNames),1);
-    
-    
-    for i = 1:numel(classNames)
-        classID(i) = classStruct.(classNames{i}).ID;
-    end
-    
-    for i = 1:numel(classIDsOnThisIm)
-        imNameIDX = strcmp({classStruct.(classNames{classID(i)}).Members.ImName},ImgNames);
-        classStruct.(classNames{classID(i)}).Members(imNameIDX) = [];
-        classStruct.(classNames{classID(i)}).num_el = classStruct.(classNames{classID(i)}).num_el - sum(imNameIDX);
-    end
-    app.comet_handles.Classes = classStruct;
+for i = 1:numel(classNames)
+    imNameIDX = [app.comet_handles.Classes.(classNames{i}).Members.ImID] == imIdx;
+    app.comet_handles.Classes.(classNames{i}).Members(imNameIDX) = [];
 end
-app.comet_handles.Imgs_Composed(:,:,1,imIdx) = app.comet_handles.Imgs_Stretched(:,:,1,imIdx);
-app.comet_handles.Imgs_Composed(:,:,2,imIdx) = app.comet_handles.Imgs_Stretched(:,:,1,imIdx);
-app.comet_handles.Imgs_Composed(:,:,3,imIdx) = app.comet_handles.Imgs_Stretched(:,:,1,imIdx);
-app.comet_handles.Imgs_Composed(:,:,4,imIdx) = app.comet_handles.Imgs_Composed(:,:,4,imIdx)*0;
+
+app.comet_handles.Imgs_Stretched(:,:,2,imIdx) = 0;
+app.comet_handles.Imgs_Stretched(:,:,3,imIdx) = 0;

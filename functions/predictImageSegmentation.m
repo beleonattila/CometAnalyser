@@ -18,17 +18,25 @@ function [bool, message] = predictImageSegmentation(app,method)
 %   Channel 1 to 3 will be modified to achieve pink and green colours
 %   Channel 4 to highlight that it's a prediction as class ID of 255
 %
+
+% Copyright © 2022 Filippo Piccinini and Attila Beleon.
+% Contacts: filippo.piccinini85@gmail.com and beleonattila@gmail.com
+% All rights reserved.
+% 
+% CometAnalyser and all related material is licensed
+% under the: 3-clause BSD License.
 %
-% Copyright © 2021 Filippo Piccinini
-% Istituto Scientifico Romagnolo per lo Studio e la Cura dei Tumori (IRST)
-% IRCCS, Meldola (FC), Italy. All rights reserved.
-%
-% This program is free software; you can redistribute it and/or modify it
-% under the terms of the GNU General Public License version 2 (or higher)
-% as published by the Free Software Foundation. This program is
-% distributed WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-% General Public License for more details.
+% This software and all related material is provided by the copyright
+% holders and contributors "as is" and any express or implied warranties,
+% including, but not limited to, the implied warranties of merchantability
+% and fitness for a particular purpose are disclaimed. In no event shall
+% <copyright holder> be liable for any direct, indirect, incidental,
+% special, exemplary, or consequential damages (including, but not limited
+% to, procurement of substitute goods or services; loss of use, data, or
+% profits; or business interruption) however caused and on any theory of
+% liability, whether in contract, strict liability, or tort (including
+% negligence or otherwise) arising in any way out of the use of this
+% software, even if advised of the possibility of such damage.
 
 bool = 0;
 [folderName, ~, ext] = fileparts(app.comet_handles.segmentationOptions.modelPath);
@@ -69,14 +77,14 @@ if ishandle(dlgHandle), close(dlgHandle), end
 
 idx = zeros(app.comet_handles.NumImages,1);
 if strcmp(method, 'single')
-    if ~any(app.comet_handles.Imgs_Composed(:,:,4,app.comet_handles.IndImgShown),'all')
+    if ~any(app.comet_handles.Imgs_Stretched(:,:,2,app.comet_handles.IndImgShown),'all')
         idx(app.comet_handles.IndImgShown,1) = 1;
     end
 elseif strcmp(method, 'multi')
 %     wb = waitbar(0,'Preparing images');
     n = app.comet_handles.NumImages;
     for j = 1:n
-        if ~any(app.comet_handles.Imgs_Composed(:,:,4,j),'all')
+        if ~any(app.comet_handles.Imgs_Stretched(:,:,2,j),'all')
             idx(j,1) = 1;
 %             if ishandle(wb)
 %                 wb = waitbar(j/n,wb,'Preparing images');
@@ -108,16 +116,20 @@ if strcmp(env,'auto') || strcmp(env,'gpu') || strcmp(env,'multi-gpu')
         if sum(indx) > 0
             imByIm = 1;
         else
-            message = {'There is no GPU available.'};
-            warndlg(message,'Environment')
+            if strcmp(env,'gpu') || strcmp(env,'multi-gpu')
+                message = {'There is no GPU available.'};
+                warndlg(message,'Environment')
+            end
             sysMem = memory;
             if sysMem.MaxPossibleArrayBytes < memoryRequirement
                 imByIm = 1;
             end
         end
     else
-        message = {'There is no GPU available.'};
-        warndlg(message,'Environment')
+        if strcmp(env,'gpu') || strcmp(env,'multi-gpu')
+            message = {'There is no GPU available.'};
+            warndlg(message,'Environment')
+        end
         sysMem = memory;
         if sysMem.MaxPossibleArrayBytes < memoryRequirement
             imByIm = 1;
@@ -203,18 +215,14 @@ if imByIm == 0
     se = strel('disk',20);
     BW2 = imclose(BW_open,se);
     C8(~BW2) = 0;
-    green = uint8(BW2) * 255;
-    green(C8==1) = 0;
-    magenta = C8;
-    magenta(C8 == 1) = 255;
-    magenta(magenta~=255) = 0;
+    segmentedComet = uint8(BW2) * 255;
+    segmentedHead = C8;
+    segmentedHead(C8 == 1) = 255;
+    segmentedHead(segmentedHead~=255) = 0;
     clear('C8')
-    
-    app.comet_handles.Imgs_Composed(:,:,2,idx) = app.comet_handles.Imgs_Composed(:,:,2,idx) + permute(green,[1 2 4 3]);
-    app.comet_handles.Imgs_Composed(:,:,1,idx) = app.comet_handles.Imgs_Composed(:,:,1,idx) + permute(magenta,[1 2 4 3]);
-    app.comet_handles.Imgs_Composed(:,:,3,idx) = app.comet_handles.Imgs_Composed(:,:,3,idx) + permute(magenta,[1 2 4 3]);
-    app.comet_handles.Imgs_Composed(:,:,4,idx) = app.comet_handles.Imgs_Composed(:,:,4,idx) + permute(magenta,[1 2 4 3]) + permute(green,[1 2 4 3]);
-    
+
+    app.comet_handles.Imgs_Stretched(:,:,2,idx) = segmentedComet;
+    app.comet_handles.Imgs_Stretched(:,:,3,idx) = segmentedHead;
     delete(progressfig)
 else
     wb = waitbar(0,'Segmentation in progress. Please wait...');
@@ -283,17 +291,14 @@ else
         se = strel('disk',20);
         BW2 = imclose(BW_open,se);
         C8(~BW2) = 0;
-        green = uint8(BW2) * 255;
-        green(C8==1) = 0;
-        magenta = C8;
-        magenta(C8 == 1) = 255;
-        magenta(magenta~=255) = 0;
+        segmentedComet = uint8(BW2) * 255;
+        segmentedHead = C8;
+        segmentedHead(C8 == 1) = 255;
+        segmentedHead(segmentedHead~=255) = 0;
         clear('C8')
         
-        app.comet_handles.Imgs_Composed(:,:,2,idx2(i)) = app.comet_handles.Imgs_Composed(:,:,2,idx2(i)) + permute(green,[1 2 4 3]);
-        app.comet_handles.Imgs_Composed(:,:,1,idx2(i)) = app.comet_handles.Imgs_Composed(:,:,1,idx2(i)) + permute(magenta,[1 2 4 3]);
-        app.comet_handles.Imgs_Composed(:,:,3,idx2(i)) = app.comet_handles.Imgs_Composed(:,:,3,idx2(i)) + permute(magenta,[1 2 4 3]);
-        app.comet_handles.Imgs_Composed(:,:,4,idx2(i)) = app.comet_handles.Imgs_Composed(:,:,4,idx2(i)) + permute(magenta,[1 2 4 3]) + permute(green,[1 2 4 3]);
+        app.comet_handles.Imgs_Stretched(:,:,2,idx2(i)) = segmentedComet;
+        app.comet_handles.Imgs_Stretched(:,:,3,idx2(i)) = segmentedHead;
         if ishandle(wb)
             waitbar(i/numIm2Segmentation,wb,sprintf('Segmentation in progress. Please wait...\n %d / %d',[i,numIm2Segmentation]))
         end

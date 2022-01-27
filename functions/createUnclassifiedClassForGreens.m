@@ -11,17 +11,25 @@ function [bool, message] = createUnclassifiedClassForGreens(app)
 %   classID             numeric value [1 255], represent the ID of class on
 %                       channel 4
 %
+
+% Copyright © 2022 Filippo Piccinini and Attila Beleon.
+% Contacts: filippo.piccinini85@gmail.com and beleonattila@gmail.com
+% All rights reserved.
+% 
+% CometAnalyser and all related material is licensed
+% under the: 3-clause BSD License.
 %
-% Copyright © 2021 Filippo Piccinini
-% Istituto Scientifico Romagnolo per lo Studio e la Cura dei Tumori (IRST)
-% IRCCS, Meldola (FC), Italy. All rights reserved.
-%
-% This program is free software; you can redistribute it and/or modify it
-% under the terms of the GNU General Public License version 2 (or higher)
-% as published by the Free Software Foundation. This program is
-% distributed WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-% General Public License for more details.
+% This software and all related material is provided by the copyright
+% holders and contributors "as is" and any express or implied warranties,
+% including, but not limited to, the implied warranties of merchantability
+% and fitness for a particular purpose are disclaimed. In no event shall
+% <copyright holder> be liable for any direct, indirect, incidental,
+% special, exemplary, or consequential damages (including, but not limited
+% to, procurement of substitute goods or services; loss of use, data, or
+% profits; or business interruption) however caused and on any theory of
+% liability, whether in contract, strict liability, or tort (including
+% negligence or otherwise) arising in any way out of the use of this
+% software, even if advised of the possibility of such damage.
 
 bool = 0;
 message = {'Process failed.'};
@@ -32,13 +40,13 @@ for i = 1:app.comet_handles.NumImages
     app.comet_handles.IndImgShown = i;
     set(app.text_Num,'Text', ['Image: ' num2str(i) '/' num2str(app.comet_handles.NumImages)]);
     set(app.text_Name,'Text', ['Image: ' char(app.comet_handles.ImgsNames{i})]);
-    waitbar(0,wb,sprintf('Adding segmented comets to "Unclassified" class. Please wait...\n%d / %d',i,app.comet_handles.NumImages))
-    tempIm = app.comet_handles.Imgs_Composed(:,:,4,i);
+    waitbar(0,wb,sprintf('Adding segmented comets to "Unclassified" class. Please wait...\n%d / %d images',i,app.comet_handles.NumImages))
+    tempIm = app.comet_handles.Imgs_Stretched(:,:,2,i);
     BW2 = tempIm == 255;
     L = bwlabel(BW2);
     numOfObj = max(L,[],'all');
     for j = 1:numOfObj
-        waitbar(j/numOfObj,wb,sprintf('Adding segmented comets to "Unclassified" class. Please wait...\n%d / %d',i,app.comet_handles.NumImages))
+        waitbar(j/numOfObj,wb,sprintf('Adding segmented comets to "Unclassified" class. Please wait...\n%d / %d images',i,app.comet_handles.NumImages))
         [xend, yend] = find(bwmorph(L == j,'skel',3));
         coor = [yend(1), xend(1)];
         [iscomplete, errorString] = clickOnCometSelection(app, coor);
@@ -64,7 +72,7 @@ for i = 1:app.comet_handles.NumImages
 end
 if ishandle(wb), close(wb), end
 app.comet_handles.IndImgShown = currentImShown;
-app.axes1.Children.CData = uint8(app.comet_handles.Imgs_Composed(:,:,1:3,app.comet_handles.IndImgShown));
+app.axes1.Children.CData = composeImage(app.comet_handles.Imgs_Stretched(:,:,:,app.comet_handles.IndImgShown));
 set(app.text_Num,'Text', ['Image: ' num2str(currentImShown) '/' num2str(app.comet_handles.NumImages)]);
 set(app.text_Name,'Text', ['Image: ' char(app.comet_handles.ImgsNames{currentImShown})]);
 bool = 1;

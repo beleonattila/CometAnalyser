@@ -22,7 +22,7 @@ function [bool,msg] = checkString(toBeChecked, forbidden, capital, number, glyph
 %   bool            Boolean indicating if the process was successful or not
 %   msg             If bool is 0 so that at least one constraint is not met
 %                   then in the msg there is description about the problem
-%
+
 % COPYRIGHT
 % Settings Template Toolbox. All Rights Reversed. 
 % Copyright (C) 2019 Abel Szkalisity

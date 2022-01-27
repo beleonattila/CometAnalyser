@@ -13,17 +13,25 @@ function [bool, warnString] = addComet(app,className)
 %   bool                Succes indicator bool
 %   errorString         Error message if something goes wrong
 %
+
+% Copyright © 2022 Filippo Piccinini and Attila Beleon.
+% Contacts: filippo.piccinini85@gmail.com and beleonattila@gmail.com
+% All rights reserved.
+% 
+% CometAnalyser and all related material is licensed
+% under the: 3-clause BSD License.
 %
-% Copyright © 2021 Filippo Piccinini
-% Istituto Scientifico Romagnolo per lo Studio e la Cura dei Tumori (IRST)
-% IRCCS, Meldola (FC), Italy. All rights reserved.
-%
-% This program is free software; you can redistribute it and/or modify it
-% under the terms of the GNU General Public License version 2 (or higher)
-% as published by the Free Software Foundation. This program is
-% distributed WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-% General Public License for more details.
+% This software and all related material is provided by the copyright
+% holders and contributors "as is" and any express or implied warranties,
+% including, but not limited to, the implied warranties of merchantability
+% and fitness for a particular purpose are disclaimed. In no event shall
+% <copyright holder> be liable for any direct, indirect, incidental,
+% special, exemplary, or consequential damages (including, but not limited
+% to, procurement of substitute goods or services; loss of use, data, or
+% profits; or business interruption) however caused and on any theory of
+% liability, whether in contract, strict liability, or tort (including
+% negligence or otherwise) arising in any way out of the use of this
+% software, even if advised of the possibility of such damage.
 
 warnString = [];
 bool = 0;
@@ -51,7 +59,7 @@ MaskComet = app.comet_handles.MaskComet;
 ROI_ULCyx_DRCyx = app.comet_handles.ROI_ULCyx_DRCyx;
 ULC_Yrow_roi = ROI_ULCyx_DRCyx(1,1); ULC_Xcol_roi = ROI_ULCyx_DRCyx(1,2); DRC_Yrow_roi = ROI_ULCyx_DRCyx(1,3); DRC_Xcol_roi = ROI_ULCyx_DRCyx(1,4);
 IndImgShown = app.comet_handles.IndImgShown;
-Imgs_Composed = app.comet_handles.Imgs_Composed(:,:,:,IndImgShown);
+Imgs_Stretched = app.comet_handles.Imgs_Stretched(:,:,:,IndImgShown);
 % ROIori = app.comet_handles.ROIori;
 
 % To delete external pixels in case of perfect fit.
@@ -65,59 +73,45 @@ if flag_CometFitFreehand == 1
         MaskComet(ROIsegm==0)=0;
     end
 end
-classID = app.comet_handles.Classes.(className).ID;
-ROIcomposed = app.scope.ImageSource;
 
-[rowI, colI, ~] = size(Imgs_Composed);
-ImgComposedCh1 = Imgs_Composed(:, :, 1);
-ImgComposedCh2 = Imgs_Composed(:, :, 2);
-ImgComposedCh3 = Imgs_Composed(:, :, 3);
-ImgComposedCh4 = Imgs_Composed(:, :, 4);
-ImgMaskInd = zeros(rowI, colI);
-ImgROIcomposedCh1 = zeros(rowI, colI);
-ImgROIcomposedCh2 = zeros(rowI, colI);
-ImgROIcomposedCh3 = zeros(rowI, colI);
-ImgROIcomposedCh1(ULC_Yrow_roi:DRC_Yrow_roi, ULC_Xcol_roi:DRC_Xcol_roi) = ROIcomposed(:,:,1);
-ImgROIcomposedCh2(ULC_Yrow_roi:DRC_Yrow_roi, ULC_Xcol_roi:DRC_Xcol_roi) = ROIcomposed(:,:,2);
-ImgROIcomposedCh3(ULC_Yrow_roi:DRC_Yrow_roi, ULC_Xcol_roi:DRC_Xcol_roi) = ROIcomposed(:,:,3);
-ImgMaskInd(ULC_Yrow_roi:DRC_Yrow_roi, ULC_Xcol_roi:DRC_Xcol_roi) = MaskComet;
-Inds = find(ImgMaskInd==1);
+[rowI, colI, ~] = size(Imgs_Stretched);
+cometMaskLayer = Imgs_Stretched(:,:,2);
+headMaskLayer = Imgs_Stretched(:,:,3);
+ImgMaskInd = logical(zeros(rowI, colI));
+if ~isempty(MaskHead)
+    ImgMaskInd(ULC_Yrow_roi:DRC_Yrow_roi, ULC_Xcol_roi:DRC_Xcol_roi) = MaskHead;
+    Inds_head = find(ImgMaskInd);
+end
+ImgMaskInd(ULC_Yrow_roi:DRC_Yrow_roi, ULC_Xcol_roi:DRC_Xcol_roi) = ImgMaskInd(ULC_Yrow_roi:DRC_Yrow_roi, ULC_Xcol_roi:DRC_Xcol_roi) + logical(MaskComet);
+Inds_comet = find(ImgMaskInd);
 
-if isempty(Inds)
+if isempty(Inds_comet)
     warnString = {'No comet has been selected.'};
     return
 end
 
-ImgComposedCh1(Inds) = ImgROIcomposedCh1(Inds);
-ImgComposedCh2(Inds) = ImgROIcomposedCh2(Inds);
-ImgComposedCh3(Inds) = ImgROIcomposedCh3(Inds);
-ImgComposedCh4(Inds) = classID;
-Imgs_Composed(:, :, 1) = ImgComposedCh1;
-Imgs_Composed(:, :, 2) = ImgComposedCh2;
-Imgs_Composed(:, :, 3) = ImgComposedCh3;
-Imgs_Composed(:, :, 4) = ImgComposedCh4;
+cometID = max(setdiff(cometMaskLayer,255),[],'all')+1;
 
-
-[maskRow, maskCol] = find(ImgMaskInd==1);
-
-thumbnailCoor = [min(maskRow), max(maskCol);...
-    max(maskRow), min(maskCol)];
-
-if app.comet_handles.Classes.(className).num_el < 1
-    upcomingIdx = 1;
-else
-    numOfElements = app.comet_handles.Classes.(className).num_el;
-    upcomingIdx = numOfElements + 1;
+if cometID == 255
+    warnString = {'You reached the limit of maximum number of objects per image.'};
+    return
 end
+
+cometMaskLayer(Inds_comet) = cometID;
+Imgs_Stretched(:, :, 2) = cometMaskLayer;
+if ~isempty(MaskHead)
+    headMaskLayer(Inds_head) = cometID;
+    Imgs_Stretched(:, :, 3) = headMaskLayer;
+end
+
+upcomingIdx = size(app.comet_handles.Classes.(className).Members,2) + 1;
 app.comet_handles.Classes.(className).Members(upcomingIdx).ImName = app.comet_handles.ImgsNames{IndImgShown};
 app.comet_handles.Classes.(className).Members(upcomingIdx).ImID = IndImgShown;
-app.comet_handles.Classes.(className).Members(upcomingIdx).thumbnailCoor = thumbnailCoor;
-app.comet_handles.Classes.(className).Members(upcomingIdx).mask = ImgMaskInd(thumbnailCoor(1,1):thumbnailCoor(2,1),thumbnailCoor(2,2):thumbnailCoor(1,2));
-app.comet_handles.Classes.(className).num_el = upcomingIdx;
+app.comet_handles.Classes.(className).Members(upcomingIdx).cometID = cometID;
 if ~isempty(app.imDatatipText)
     delete(app.imDatatipText)
     app.imDatatipText = [];
 end
-app.comet_handles.Imgs_Composed(:,:,:,IndImgShown) = Imgs_Composed;
+app.comet_handles.Imgs_Stretched(:,:,:,IndImgShown) = Imgs_Stretched;
 app.comet_handles.FlagNewComets = app.comet_handles.FlagNewComets + 1;
 bool = 1;

@@ -13,68 +13,76 @@ function [iscomplete, errorString] = clickOnCometSelection(app, coor)
 %   bool                Succes indicator bool
 %   errorString         Error message if something goes wrong
 %
+
+% Copyright © 2022 Filippo Piccinini and Attila Beleon.
+% Contacts: filippo.piccinini85@gmail.com and beleonattila@gmail.com
+% All rights reserved.
 %
-% Copyright © 2021 Filippo Piccinini
-% Istituto Scientifico Romagnolo per lo Studio e la Cura dei Tumori (IRST)
-% IRCCS, Meldola (FC), Italy. All rights reserved.
+% CometAnalyser and all related material is licensed
+% under the: 3-clause BSD License.
 %
-% This program is free software; you can redistribute it and/or modify it
-% under the terms of the GNU General Public License version 2 (or higher)
-% as published by the Free Software Foundation. This program is
-% distributed WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-% General Public License for more details.
+% This software and all related material is provided by the copyright
+% holders and contributors "as is" and any express or implied warranties,
+% including, but not limited to, the implied warranties of merchantability
+% and fitness for a particular purpose are disclaimed. In no event shall
+% <copyright holder> be liable for any direct, indirect, incidental,
+% special, exemplary, or consequential damages (including, but not limited
+% to, procurement of substitute goods or services; loss of use, data, or
+% profits; or business interruption) however caused and on any theory of
+% liability, whether in contract, strict liability, or tort (including
+% negligence or otherwise) arising in any way out of the use of this
+% software, even if advised of the possibility of such damage.
 
 iscomplete = 0;
 errorString = [];
-classIdx = app.comet_handles.Imgs_Composed(coor(2),coor(1),4,app.comet_handles.IndImgShown);
-if classIdx == 0
-    [tempX, tempY] = find(app.comet_handles.Imgs_Composed(:,:,4,app.comet_handles.IndImgShown));
-    [~, idx] = min(sqrt((tempX-coor(2)).^2 + (tempY - coor(1)).^2));
-    classIdx = app.comet_handles.Imgs_Composed(tempX(idx(1)),tempY(idx(1)),4,app.comet_handles.IndImgShown);
-end
-IndImgShown = app.comet_handles.IndImgShown;
-if classIdx < 255
-    classNames = fieldnames(app.comet_handles.Classes);
-    membersOnThisImage = app.comet_handles.Classes.(classNames{classIdx}).Members([app.comet_handles.Classes.(classNames{classIdx}).Members.ImID] == IndImgShown);
-    idToShow = [];
-    for i = 1:size(membersOnThisImage,2)
-        currentThumbcoor = membersOnThisImage(i).thumbnailCoor;
-        if currentThumbcoor(1, 1) < coor(2) && currentThumbcoor(2, 1) > coor(2) &&...
-                currentThumbcoor(2, 2) < coor(1) && currentThumbcoor(1, 2) > coor(1)
-            if isempty(idToShow)
-                idToShow = i;
-            else
-                fakeIm = zeros(app.comet_handles.ImageSize);
-                prevBB = membersOnThisImage(idToShow).thumbnailCoor;
-                fakeIm(prevBB(1,1):prevBB(2,1),prevBB(2,2):prevBB(1,2)) = membersOnThisImage(idToShow).mask;
-                if ~fakeIm(coor(2),coor(1))
-                    idToShow = i;
-                end
-            end
+classNames = fieldnames(app.comet_handles.Classes);
+classIdx = [];
+cometIdxTail = app.comet_handles.Imgs_Stretched(coor(2),coor(1),2,app.comet_handles.IndImgShown);
+if cometIdxTail < 255
+    for i = 1:numel(classNames)
+        imFileter = [app.comet_handles.Classes.(classNames{i}).Members.ImID] == app.comet_handles.IndImgShown;
+        cometIDFilter = [app.comet_handles.Classes.(classNames{i}).Members.cometID] == cometIdxTail;
+        if any(imFileter & cometIDFilter)
+            idToShow = find(imFileter & cometIDFilter);
+            classIdx = i;
+            break
         end
     end
-    if ~isempty(idToShow)
-        coorToShow = membersOnThisImage(idToShow).thumbnailCoor;
-        BB = coorToShow;
-        cometProp = membersOnThisImage(idToShow);
+    
+    if ~isempty(classIdx)
+        IndImgShown = app.comet_handles.IndImgShown;
+        
+        [xCoor,yCoor] = find(app.comet_handles.Imgs_Stretched(:,:,2,IndImgShown) == cometIdxTail);
+        xMin = min(xCoor);
+        xMax = max(xCoor);
+        yMin = min(yCoor);
+        yMax = max(yCoor);
+        
+        BB = [xMin, yMax;...
+            xMax, yMin];
+        cometProp = app.comet_handles.Classes.(classNames{i}).Members(idToShow);
+        app.selectedComet.coor = coor;
         [bool, errorString] = ROI_processing(app, BB, [], cometProp);
         if bool == 0
             return
         end
         app.selectedComet.className = classNames{classIdx};
-        app.selectedComet.param = membersOnThisImage(idToShow);
+        app.selectedComet.param = cometProp;
+    else
+        errorString = {'There is no matching instance in class structure';
+                       'Please contact the developer!'};
+          return
     end
-else
-    BW2 = bwselect(app.comet_handles.Imgs_Composed(:,:,4,app.comet_handles.IndImgShown),coor(1),coor(2));
+else % Predicted mask (green and magenta)
+    BW2 = bwselect(app.comet_handles.Imgs_Stretched(:,:,2,app.comet_handles.IndImgShown),coor(1),coor(2));
     [maskRow, maskCol] = find(BW2==1);
     BB = [min(maskRow), max(maskCol);...
         max(maskRow), min(maskCol)];
     
-    app.selectedComet.param.mask = BW2(BB(1,1):BB(2,1),BB(2,2):BB(1,2));
-    app.selectedComet.param.thumbnailCoor = BB;
-    app.selectedComet.param.ImID = IndImgShown;
+    app.selectedComet.param.ImID = app.comet_handles.IndImgShown;
+    app.selectedComet.param.cometID = 255;
     app.selectedComet.className = 'Prediction';
+    app.selectedComet.coor = coor;
     [bool, errorString] = ROI_processing(app, BB, [], app.selectedComet.param);
     if bool == 0
         return

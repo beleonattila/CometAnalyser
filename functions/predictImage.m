@@ -19,7 +19,7 @@ function [ out, props ] = predictImage( model, features, classNames)
 %                   many column as many possible classes we have. Usually
 %                   the greatest class probability also indicates the
 %                   predictied class label (out variable).
-%
+
 % COPYRIGHT
 % Advanced Cell Classifier (ACC) Toolbox. All rights reserved.
 % Copyright (C) 2016 Peter Horvath,

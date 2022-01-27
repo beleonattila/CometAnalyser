@@ -23,17 +23,24 @@ function [VectorAngle, VectorModule, Vector_xcol_yrow] = AngleBetweenTwoVectors(
 % EXAMPLE OF USAGE: 
 % [VectorAngle, VectorModule, Vector_xrow_ycol] = AngleBetweenTwoVectors([2,0], [0,3]);
 
-% CVG (Computer Vision Group) Toolbox
-% Copyright © 2012 Filippo Piccinini, Alessandro Bevilacqua, 
-% Advanced Research Center on Electronic Systems (ARCES), 
-% University of Bologna, Italy. All rights reserved.
+% Copyright © 2022 Filippo Piccinini and Attila Beleon.
+% Contacts: filippo.piccinini85@gmail.com and beleonattila@gmail.com
+% All rights reserved.
+% 
+% CometAnalyser and all related material is licensed
+% under the: 3-clause BSD License.
 %
-% This program is free software; you can redistribute it and/or modify it 
-% under the terms of the GNU General Public License version 2 (or higher) 
-% as published by the Free Software Foundation. This program is 
-% distributed WITHOUT ANY WARRANTY; without even the implied warranty of 
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU 
-% General Public License for more details.
+% This software and all related material is provided by the copyright
+% holders and contributors "as is" and any express or implied warranties,
+% including, but not limited to, the implied warranties of merchantability
+% and fitness for a particular purpose are disclaimed. In no event shall
+% <copyright holder> be liable for any direct, indirect, incidental,
+% special, exemplary, or consequential damages (including, but not limited
+% to, procurement of substitute goods or services; loss of use, data, or
+% profits; or business interruption) however caused and on any theory of
+% liability, whether in contract, strict liability, or tort (including
+% negligence or otherwise) arising in any way out of the use of this
+% software, even if advised of the possibility of such damage.
 
 Vector1x = Vector1_xcol_yrow(1);
 Vector1y = Vector1_xcol_yrow(2);
