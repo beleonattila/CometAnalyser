@@ -1,4 +1,4 @@
-function classCatalog = composeClassImage(Classes, imgs, axesWidth)
+function classCatalog = composeClassImage(Classes, imgs, ImgsNames, axesWidth)
 % AUTHOR:	Attila Beleon
 % DATE: 	Augustus 27, 2020
 % NAME: 	composeClassCatalog
@@ -56,7 +56,7 @@ for cl = 1:numel(classNames)
     y = 1;
     for i = 1:numimgs
         cometID = Classes.(classNames{cl}).Members(i).cometID;
-        imID = Classes.(classNames{cl}).Members(i).ImID;
+        imID = strcmp({Classes.(classNames{cl}).Members(i).ImName},ImgsNames);
         [xCoor,yCoor] = find(imgs(:,:,2,imID)==cometID);
         xMin = min(xCoor);
         xMax = max(xCoor);

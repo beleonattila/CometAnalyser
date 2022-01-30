@@ -90,7 +90,8 @@ if isempty(Inds_comet)
     return
 end
 
-cometID = max(setdiff(cometMaskLayer,255),[],'all')+1;
+cometID = min(setdiff(1:255,cometMaskLayer),[],'all');
+
 
 if cometID == 255
     warnString = {'You reached the limit of maximum number of objects per image.'};
@@ -106,7 +107,7 @@ end
 
 upcomingIdx = size(app.comet_handles.Classes.(className).Members,2) + 1;
 app.comet_handles.Classes.(className).Members(upcomingIdx).ImName = app.comet_handles.ImgsNames{IndImgShown};
-app.comet_handles.Classes.(className).Members(upcomingIdx).ImID = IndImgShown;
+% app.comet_handles.Classes.(className).Members(upcomingIdx).ImID = IndImgShown;
 app.comet_handles.Classes.(className).Members(upcomingIdx).cometID = cometID;
 if ~isempty(app.imDatatipText)
     delete(app.imDatatipText)

@@ -1,4 +1,4 @@
-function tempIm = classFilteredImage(im, cLabel, score, cnum, classNames, BB)
+function tempIm = classFilteredImage(im, mask, cLabel, score, cnum, classNames, cometIDs)
 % TODO comment and header
 
 % Copyright © 2022 Filippo Piccinini and Attila Beleon.
@@ -26,9 +26,13 @@ position = zeros(length(cnum),4);
 imLabel = cell(length(cnum),1);
 labelColor = zeros(length(cnum),3);
 for i = 1:length(cnum)
-   cBB = BB{i} + [-1 1; 1 -1];
-   position(i,:) = [cBB(2,2) cBB(1,1) cBB(1,2)-cBB(2,2) cBB(2,1)-cBB(1,1)];
-   imLabel{i} = [cLabel{i} '_|_' num2str(score(i,cnum(i)))];
+    [xCoor,yCoor] = find(mask == cometIDs(i));
+    xMin = min(xCoor)-1;
+    xMax = max(xCoor)+1;
+    yMin = min(yCoor)-1;
+    yMax = max(yCoor)+1;
+    position(i,:) = [yMin, xMin, yMax-yMin, xMax-xMin];
+    imLabel{i} = [cLabel{i} '_|_' num2str(score(i,cnum(i)))];
    labelColor(i,:) = colorOrder(end - cnum(i),:)*255;
 end
 

@@ -40,12 +40,14 @@ classIdx = [];
 cometIdxTail = app.comet_handles.Imgs_Stretched(coor(2),coor(1),2,app.comet_handles.IndImgShown);
 if cometIdxTail < 255
     for i = 1:numel(classNames)
-        imFileter = [app.comet_handles.Classes.(classNames{i}).Members.ImID] == app.comet_handles.IndImgShown;
-        cometIDFilter = [app.comet_handles.Classes.(classNames{i}).Members.cometID] == cometIdxTail;
-        if any(imFileter & cometIDFilter)
-            idToShow = find(imFileter & cometIDFilter);
-            classIdx = i;
-            break
+        if ~isempty(app.comet_handles.Classes.(classNames{i}).Members)
+            imFileter = strcmp({app.comet_handles.Classes.(classNames{i}).Members.ImName},app.comet_handles.ImgsNames{app.comet_handles.IndImgShown});
+            cometIDFilter = [app.comet_handles.Classes.(classNames{i}).Members.cometID] == cometIdxTail;
+            if any(imFileter & cometIDFilter)
+                idToShow = find(imFileter & cometIDFilter);
+                classIdx = i;
+                break
+            end
         end
     end
     
@@ -79,7 +81,7 @@ else % Predicted mask (green and magenta)
     BB = [min(maskRow), max(maskCol);...
         max(maskRow), min(maskCol)];
     
-    app.selectedComet.param.ImID = app.comet_handles.IndImgShown;
+%     app.selectedComet.param.ImID = app.comet_handles.IndImgShown;
     app.selectedComet.param.cometID = 255;
     app.selectedComet.className = 'Prediction';
     app.selectedComet.coor = coor;

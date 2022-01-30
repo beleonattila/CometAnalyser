@@ -130,7 +130,7 @@ if length(cometIdxTail) == 1 % in case there are other segmented comets in the r
     if cometIdxTail < 255
         classNames = fieldnames(app.comet_handles.Classes);
         for i = 1:numel(classNames)
-            imFileter = [app.comet_handles.Classes.(classNames{i}).Members.ImID] == app.comet_handles.IndImgShown;
+            imFileter = strcmp({app.comet_handles.Classes.(classNames{i}).Members.ImName},app.comet_handles.ImgsNames{IndImgShown});
             cometIDFilter = [app.comet_handles.Classes.(classNames{i}).Members.cometID] == cometIdxTail;
             if any(imFileter & cometIDFilter)
                 idToShow = find(imFileter & cometIDFilter);

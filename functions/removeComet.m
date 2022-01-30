@@ -35,17 +35,19 @@ function [bool, warnString] = removeComet(app)
 warnString = [];
 bool = 0;
 
-if ~strcmp(app.selectedComet.className,'Prediction')
+if ~strcmp(app.selectedComet.className,'Prediction')    
     classNames = fieldnames(app.comet_handles.Classes);
     classIdx = [];
     % Find the index of the selected comet in the class structure
     for i = 1:numel(classNames)
-        imFileter = [app.comet_handles.Classes.(classNames{i}).Members.ImID] == app.comet_handles.IndImgShown;
-        cometIDFilter = [app.comet_handles.Classes.(classNames{i}).Members.cometID] == app.selectedComet.param.cometID;
-        if any(imFileter & cometIDFilter)
-            idToShow = find(imFileter & cometIDFilter);
-            classIdx = i;
-            break
+        if ~isempty(app.comet_handles.Classes.(classNames{i}).Members)
+            imFileter = strcmp({app.comet_handles.Classes.(classNames{i}).Members.ImName},app.comet_handles.ImgsNames{app.comet_handles.IndImgShown});
+            cometIDFilter = [app.comet_handles.Classes.(classNames{i}).Members.cometID] == app.selectedComet.param.cometID;
+            if any(imFileter & cometIDFilter)
+                idToShow = find(imFileter & cometIDFilter);
+                classIdx = i;
+                break
+            end
         end
     end
     if isempty(classIdx)
@@ -57,7 +59,7 @@ if ~strcmp(app.selectedComet.className,'Prediction')
 end
 
 cometID = app.selectedComet.param.cometID;
-ImID = app.selectedComet.param.ImID;
+ImID = strcmp(app.selectedComet.param.ImName,app.comet_handles.ImgsNames);
 CometMaskLayer = app.comet_handles.Imgs_Stretched(:, :, 2, ImID);
 HeadMaskLayer = app.comet_handles.Imgs_Stretched(:, :, 3, ImID);
 if cometID < 255

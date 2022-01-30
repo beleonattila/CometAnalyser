@@ -37,7 +37,7 @@ imIdx = app.comet_handles.IndImgShown;
 classNames = fieldnames(app.comet_handles.Classes);
 
 for i = 1:numel(classNames)
-    imNameIDX = [app.comet_handles.Classes.(classNames{i}).Members.ImID] == imIdx;
+    imNameIDX = strcmp({app.comet_handles.Classes.(classNames{i}).Members.ImName},app.comet_handles.ImgsNames{imIdx});
     app.comet_handles.Classes.(classNames{i}).Members(imNameIDX) = [];
 end
 
