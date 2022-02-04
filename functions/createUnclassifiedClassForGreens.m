@@ -38,8 +38,10 @@ currentImShown = app.comet_handles.IndImgShown;
 wb = waitbar(0,'Adding segmented comets to "Unclassified" class. Please wait...');
 for i = 1:app.comet_handles.NumImages
     app.comet_handles.IndImgShown = i;
+    app.axes1.Children.CData = composeImage(app.comet_handles.Imgs_Stretched(:,:,:,app.comet_handles.IndImgShown));
     set(app.text_Num,'Text', ['Image: ' num2str(i) '/' num2str(app.comet_handles.NumImages)]);
     set(app.text_Name,'Text', ['Image: ' char(app.comet_handles.ImgsNames{i})]);
+    pause(0.1)
     waitbar(0,wb,sprintf('Adding segmented comets to "Unclassified" class. Please wait...\n%d / %d images',i,app.comet_handles.NumImages))
     tempIm = app.comet_handles.Imgs_Stretched(:,:,2,i);
     BW2 = tempIm == 255;
@@ -75,4 +77,12 @@ app.comet_handles.IndImgShown = currentImShown;
 app.axes1.Children.CData = composeImage(app.comet_handles.Imgs_Stretched(:,:,:,app.comet_handles.IndImgShown));
 set(app.text_Num,'Text', ['Image: ' num2str(currentImShown) '/' num2str(app.comet_handles.NumImages)]);
 set(app.text_Name,'Text', ['Image: ' char(app.comet_handles.ImgsNames{currentImShown})]);
+app.scope.ImageSource = app.CometIcon;
+app.selectedComet = [];
+app.comet_handles.ROIshown = 0;
+app.comet_handles.ROIori = [];
+app.comet_handles.ROIoriFiltered = [];
+app.comet_handles.ROIsegm = [];
+app.comet_handles.ROI_ULCyx_DRCyx = [];
+
 bool = 1;

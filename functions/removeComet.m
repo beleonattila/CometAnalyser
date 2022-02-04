@@ -66,7 +66,7 @@ if cometID < 255
     CometMaskLayer(CometMaskLayer == cometID) = 0;
     HeadMaskLayer(HeadMaskLayer == cometID) = 0;
 else
-    coor = app.selectedComet.coor;
+    coor = app.selectedComet.param.coor;
     BW = bwselect(app.comet_handles.Imgs_Stretched(:,:,2,app.comet_handles.IndImgShown),coor(1),coor(2));
     CometMaskLayer(BW) = 0;
     HeadMaskLayer(BW) = 0;

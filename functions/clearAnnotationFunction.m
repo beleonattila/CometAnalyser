@@ -34,12 +34,15 @@ function clearAnnotationFunction(app)
 % software, even if advised of the possibility of such damage.
 
 imIdx = app.comet_handles.IndImgShown;
-classNames = fieldnames(app.comet_handles.Classes);
-
-for i = 1:numel(classNames)
-    imNameIDX = strcmp({app.comet_handles.Classes.(classNames{i}).Members.ImName},app.comet_handles.ImgsNames{imIdx});
-    app.comet_handles.Classes.(classNames{i}).Members(imNameIDX) = [];
+if ~isempty(app.comet_handles.Classes)
+    classNames = fieldnames(app.comet_handles.Classes);
+    
+    for i = 1:numel(classNames)
+        if ~isempty(app.comet_handles.Classes.(classNames{i}).Members)
+            imNameIDX = strcmp({app.comet_handles.Classes.(classNames{i}).Members.ImName},app.comet_handles.ImgsNames{imIdx});
+            app.comet_handles.Classes.(classNames{i}).Members(imNameIDX) = [];
+        end
+    end
 end
-
 app.comet_handles.Imgs_Stretched(:,:,2,imIdx) = 0;
 app.comet_handles.Imgs_Stretched(:,:,3,imIdx) = 0;

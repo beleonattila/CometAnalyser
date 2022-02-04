@@ -29,18 +29,23 @@ function [bool, comet_handles] = checkMissingValues4comet_handles(comet_handles)
 % software, even if advised of the possibility of such damage.
 
 bool = 0;
-
 % Image path
-if isempty(comet_handles.PathInputFolderOriginal)
-    uiwait(helpdlg('Input image folder path is missing. Please set the path...'))
-    newPath = uigetdir;
-    if ~isempty(newPath)
-        comet_handles.PathInputFolderOriginal = newPath;
+while bool == 0
+    if isempty(comet_handles.PathInputFolderOriginal)
+        uiwait(helpdlg('Input image folder path is missing. Please set the path...'))
+        newPath = uigetdir;
+        if ~isempty(newPath)
+            if isnumeric(newPath)
+                return
+            else
+                bool = 1;
+                comet_handles.PathInputFolderOriginal = newPath;
+            end
+        end
     else
-        return
+        bool = 1;
     end
 end
-
 % Fluorescent or Silver stained
 answer = questdlg('Is this project SILVER STAINED or FLUORESCENT?','Project type','Silver Stained','Fluorescent','Silver Stained');
 if ~isempty(answer)
@@ -50,6 +55,7 @@ if ~isempty(answer)
         comet_handles.FluorescenceImages = 1;
     end
 else
+    bool = 0;
     return
 end
 
@@ -61,19 +67,15 @@ if isempty(comet_handles.ImageFormat)
     if ~isempty(answer)
         comet_handles.ImageFormat = extensionTypes{answer};
     else
+        bool = 0;
         return
     end
 end
 
 % Image size and number of images
-[w,h,ch,n] = size(comet_handles.Imgs_Composed);
+[w,h,~,n] = size(comet_handles.Imgs_Composed);
 comet_handles.ImageSize = [w, h];
 comet_handles.NumImages = n;
-
-% Set Imgs_Stretched
-if isempty(comet_handles.Imgs_Stretched)
-    comet_handles.Imgs_Stretched = comet_handles.Imgs_Composed(:,:,2,:);
-end
 
 % Set DirList
 
@@ -86,11 +88,20 @@ if isempty(comet_handles.dirList)
             comet_handles.dirList = tempDirList;
         else
             uiwait(helpdlg('Input image folder path is missing. Please set the path...'))
-            newPath = uigetdir;
-            if ~isempty(newPath)
-                comet_handles.PathInputFolderOriginal = newPath;
-            else
-                return
+            bool = 0;
+            while bool == 0
+                if isempty(comet_handles.PathInputFolderOriginal)
+                    uiwait(helpdlg('Input image folder path is missing. Please set the path...'))
+                    newPath = uigetdir;
+                    if ~isempty(newPath)
+                        if isnumeric(newPath)
+                            return
+                        else
+                            bool = 1;
+                            comet_handles.PathInputFolderOriginal = newPath;
+                        end
+                    end
+                end
             end
             uiwait(helpdlg('Please set the format of images.'))
             extensionTypes = {'jpg','bmp','png','tif','tiff'};
@@ -114,16 +125,21 @@ if isempty(comet_handles.IndImgShown)
     comet_handles.IndImgShown = 1;
 end
 
-% Set ClassCounter
 if ~isempty(comet_handles.Classes)
-    classNames = fieldnames(comet_handles.Class);
+    classNames = fieldnames(comet_handles.Classes);
     comet_handles.ClassCounter = numel(classNames);
-elseif sum(comet_handles.Imgs_Composed(:,:,4,:),'all') > 0
-    comet_handles.ClassCounter = 1;
-    comet_handles.Classes.Unclassified.Members = [];
-    comet_handles.Classes.Unclassified.num_el = 0;
-    comet_handles.Classes.Unclassified.ID = 1;
-    comet_handles.Imgs_Composed(:,:,4,:) = comet_handles.Imgs_Composed(:,:,4,:)*255;
+    comet_handles = classVersionControl(comet_handles);
+else
+    % Set Imgs_Stretched
+    if isempty(comet_handles.Imgs_Stretched)
+        comet_handles.Imgs_Stretched = oldComposed2NewStretched(comet_handles.Imgs_Composed);
+    else
+        tempImgs_Stretched = oldComposed2NewStretched(comet_handles.Imgs_Composed);
+        comet_handles.Imgs_Stretched(:,:,2:3,:) = tempImgs_Stretched(:,:,2:3,:);
+    end
 end
+
+comet_handles.Imgs_Ori = comet_handles.Imgs_Stretched(:,:,1,:);
+comet_handles.Imgs_Composed = [];
 
 bool = 1;

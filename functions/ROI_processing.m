@@ -111,7 +111,7 @@ else % Comet selected by clicking on it has been segmented and classified alread
     ROIori = ImgShown(BB2(1,1):BB2(2,1),BB2(2,2):BB2(1,2));
     ROIoriFiltered = ImgShownFiltered(BB2(1,1):BB2(2,1),BB2(2,2):BB2(1,2));
     BWim = logical(app.comet_handles.Imgs_Stretched(:,:,2,IndImgShown));
-    coor = app.selectedComet.coor;
+    coor = app.selectedComet.param.coor;
     isolatedCometMaskLayer = bwselect(BWim,coor(1),coor(2));
     MaskComet = isolatedCometMaskLayer(BB2(1,1):BB2(2,1),BB2(2,2):BB2(1,2));
     neigboursMask = app.comet_handles.Imgs_Stretched(BB2(1,1):BB2(2,1),BB2(2,2):BB2(1,2),2,IndImgShown);

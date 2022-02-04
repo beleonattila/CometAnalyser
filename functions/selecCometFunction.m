@@ -67,8 +67,8 @@ try
         BWout1 = createMask(hFigFree2)*1;
 
         pos = hFigFree2.Position;
-        xHi = round(min([max(pos(:,2)); yrowOri]));
-        yHi = round(min([max(pos(:,1)); xcolOri]));
+        xHi = round(min([max(pos(:,2)); xcolOri]));
+        yHi = round(min([max(pos(:,1)); yrowOri]));
         xLow = round(max([min(pos(:,2)); 1]));
         yLow = round(max([min(pos(:,1)); 1]));
         BB = [xLow, yHi;...
