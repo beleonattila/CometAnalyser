@@ -41,7 +41,7 @@ if ~isempty(ids)
     wb = waitbar(0,'Saving annotation. Please wait...');
     n = length(ids);
     for i = 1:n
-        greyScale = app.comet_handles.Imgs_Stretched(:,:,1,ids(i));
+        greyScale = app.comet_handles.Imgs_Ori(:,:,1,ids(i));
         tail = app.comet_handles.Imgs_Stretched(:,:,2,ids(i));
         tail(tail>0) = 127;
         

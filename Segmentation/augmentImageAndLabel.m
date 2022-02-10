@@ -1,4 +1,4 @@
-function data = augmentImageAndLabel(data, xTrans, yTrans)
+function data = augmentImageAndLabel(data, xTrans, yTrans, rotVector, scaleVector)
 % TODO comment and header
 % Augment images and pixel label images using random reflection and
 % translation.
@@ -30,7 +30,9 @@ for i = 1:size(data,1)
         'XReflection',true,...
         'YReflection',true,...
         'XTranslation', xTrans, ...
-        'YTranslation', yTrans);
+        'YTranslation', yTrans,...
+        'Rotation',rotVector,...
+        'Scale',scaleVector);
     
     % Center the view at the center of image in the output space while
     % allowing translation to move the output image out of view.
@@ -40,5 +42,4 @@ for i = 1:size(data,1)
     data{i,1} = imwarp(data{i,1}, tform, 'OutputView', rout);
     data{i,2} = imwarp(data{i,2}, tform, 'OutputView', rout);
     
-end
 end

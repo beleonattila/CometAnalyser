@@ -52,8 +52,11 @@ ROIcomposed(:,:,1) = ROIcomposed1;
 if flag_CurrentCometType == 1 || flag_CurrentCometType == 3       
     ROIcomposed3 = ROIcomposed(:,:,3);
     ROIcomposed3(MaskHead>0)=255;
+    ROIcomposed2 = ROIcomposed(:,:,2);
+    ROIcomposed2(MaskHead>0) = ROIcomposed2(MaskHead>0)*0.5;
+    ROIcomposed(:,:,2) = ROIcomposed2;
     ROIcomposed(:,:,3) = ROIcomposed3;
     ROIcomposed1 = ROIcomposed(:,:,1);
-    ROIcomposed1(MaskHead>0)=ROIori(MaskHead>0);
+    ROIcomposed1(MaskHead>0)=ROIori(MaskHead>0)*0.5;
     ROIcomposed(:,:,1) = ROIcomposed1;
 end

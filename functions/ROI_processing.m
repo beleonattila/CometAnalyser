@@ -85,8 +85,8 @@ if isempty(cometProp) % in the case of drawn segmentation
     
     % At this point the mask is ready. Next step is to check wether a class
     % ID is already there or not.
-    tailLayer = app.comet_handles.Imgs_Stretched(BB(1,1):BB(2,1),BB(2,2):BB(1,2), 2, IndImgShown);
-    cometIdxTail = unique(tailLayer(logical(MaskComet)));
+    cometLayer = app.comet_handles.Imgs_Stretched(BB(1,1):BB(2,1),BB(2,2):BB(1,2), 2, IndImgShown);
+    cometIdxTail = unique(cometLayer(logical(MaskComet)));
     cometIdxTail = cometIdxTail(cometIdxTail>0);
     
 else % Comet selected by clicking on it has been segmented and classified already.
@@ -110,19 +110,28 @@ else % Comet selected by clicking on it has been segmented and classified alread
         xH, yL];
     ROIori = ImgShown(BB2(1,1):BB2(2,1),BB2(2,2):BB2(1,2));
     ROIoriFiltered = ImgShownFiltered(BB2(1,1):BB2(2,1),BB2(2,2):BB2(1,2));
-    BWim = logical(app.comet_handles.Imgs_Stretched(:,:,2,IndImgShown));
-    coor = app.selectedComet.param.coor;
-    isolatedCometMaskLayer = bwselect(BWim,coor(1),coor(2));
-    MaskComet = isolatedCometMaskLayer(BB2(1,1):BB2(2,1),BB2(2,2):BB2(1,2));
-    neigboursMask = app.comet_handles.Imgs_Stretched(BB2(1,1):BB2(2,1),BB2(2,2):BB2(1,2),2,IndImgShown);
-    neigboursMask(MaskComet) = 0;
-    MaskHead = logical(app.comet_handles.Imgs_Stretched(BB2(1,1):BB2(2,1),BB2(2,2):BB2(1,2),3,IndImgShown));
-    MaskHead(~MaskComet) = 0;
+    neigbourhoodMask = app.comet_handles.Imgs_Stretched(BB2(1,1):BB2(2,1),BB2(2,2):BB2(1,2),2,IndImgShown);
+    if cometProp.cometID < 255
+        MaskComet = neigbourhoodMask;
+        MaskComet(MaskComet~=cometProp.cometID) = 0;
+        MaskHead = app.comet_handles.Imgs_Stretched(BB2(1,1):BB2(2,1),BB2(2,2):BB2(1,2),3,IndImgShown);
+        MaskHead(MaskHead~=cometProp.cometID) = 0;
+        MaskComet = logical(MaskComet);
+        MaskHead = logical(MaskHead);
+    else
+        BWim = logical(app.comet_handles.Imgs_Stretched(:,:,2,IndImgShown));
+        coor = app.selectedComet.param.coor;
+        isolatedCometMaskLayer = bwselect(BWim,coor(1),coor(2),4);
+        MaskComet = isolatedCometMaskLayer(BB2(1,1):BB2(2,1),BB2(2,2):BB2(1,2));
+        MaskHead = logical(app.comet_handles.Imgs_Stretched(BB2(1,1):BB2(2,1),BB2(2,2):BB2(1,2),3,IndImgShown));
+        MaskHead(~MaskComet) = 0;
+    end
+    neigbourhoodMask(MaskComet) = 0;
     SE = strel('ball',3,3);
-    neigboursMask = imdilate(neigboursMask,SE);
+    neigbourhoodMask = imdilate(neigbourhoodMask,SE);
     SE2 = strel('rectangle',[xRadius, yRadius]);
     tempROIsegm = imdilate(MaskComet, SE2);
-    ROIsegm = uint8(tempROIsegm .* imcomplement(imbinarize(neigboursMask)));
+    ROIsegm = uint8(tempROIsegm .* imcomplement(logical(neigbourhoodMask)));
     cometIdxTail = [];
 end
 
@@ -162,6 +171,10 @@ if length(cometIdxTail) == 1 % in case there are other segmented comets in the r
                                              flag_CurrentCometType));
         app.selectedComet.className = 'Prediction';
         app.selectedComet.param.cometID = 255;
+        app.selectedComet.param.ImName = app.comet_handles.ImgsNames(app.comet_handles.IndImgShown);
+        separatedSelectedMask = uint8(BWout1) .* app.comet_handles.Imgs_Stretched(:,:,2,IndImgShown);
+        centroid = calcLargestInnerTriangleCentorid(logical(separatedSelectedMask));
+        app.selectedComet.param.coor = [centroid(2), centroid(1)];
     end
     
     

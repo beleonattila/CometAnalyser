@@ -131,4 +131,8 @@ if SizeDiskDilation>0
     MaskBW01 = imdilate(MaskBW01,SeDiskDefault);
 end
 
+% Pixels out of the original segmentation
+ManualSegmBW(ManualSegmBW>1) = 1;
+MaskBW01 = MaskBW01.*ManualSegmBW;
+
 MaskBW = MaskBW01;

@@ -76,6 +76,11 @@ try
         
         % Delete line
         if exist('hFigFree2', 'var'); delete(hFigFree2); end
+        classLayer = app.comet_handles.Imgs_Stretched(:,:,2,app.comet_handles.IndImgShown);
+        selecttionOnClassLayer = classLayer .* uint8(BWout1);
+        NumOfSelectedObjects = numel(setdiff(unique(bwlabel(logical(selecttionOnClassLayer))),0));
+        
+        if NumOfSelectedObjects <= 1
         [bool, errorString] = ROI_processing(app, BB, BWout1, []);
         
         if bool == 0
@@ -86,6 +91,12 @@ try
             return
         end
         iscomplete = 1;
+        else
+            errorString = {'More than one objects have been selected.';...
+                        'Please select only one object!'};
+            iscomplete = 0;
+            return
+        end
     end
 catch ME
     iscomplete = 0;

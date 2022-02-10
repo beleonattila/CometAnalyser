@@ -12,7 +12,9 @@ for i = 1:numel(classNames)
         end
         currentImName = comet_handles.Classes.(classNames{i}).Members(j).ImName;
         imIdx = strcmp(ImgsNames,currentImName);
-        cometID = double(max(comet_handles.Imgs_Stretched(:,:,2,imIdx),[],'all'))+1;
+        IDsOnThisImage = unique(comet_handles.Imgs_Stretched(:,:,2,imIdx));
+        freeIDs = setdiff(1:255,IDsOnThisImage);
+        cometID = min(freeIDs);
         BB = comet_handles.Classes.(classNames{i}).Members(j).thumbnailCoor;
         cometMaskLayer = comet_handles.Imgs_Composed(:,:,4,imIdx);
         x = round(mean(BB(:,1)));

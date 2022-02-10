@@ -36,6 +36,7 @@ function [iscomplete, errorString] = clickOnCometSelection(app, coor)
 iscomplete = 0;
 errorString = [];
 cometIdxTail = app.comet_handles.Imgs_Stretched(coor(2),coor(1),2,app.comet_handles.IndImgShown);
+IndImgShown = app.comet_handles.IndImgShown;
 if cometIdxTail < 255
     classNames = fieldnames(app.comet_handles.Classes);
     classIdx = [];
@@ -52,7 +53,11 @@ if cometIdxTail < 255
     end
     
     if ~isempty(classIdx)
-        IndImgShown = app.comet_handles.IndImgShown;
+        while numel(idToShow)>1
+            warndlg('Duplictaion deleted!')
+            app.comet_handles.Classes.(classNames{i}).Members(idToShow(end)) = [];
+            idToShow(end) = [];
+        end
         
         [xCoor,yCoor] = find(app.comet_handles.Imgs_Stretched(:,:,2,IndImgShown) == cometIdxTail);
         xMin = min(xCoor);
@@ -72,8 +77,14 @@ if cometIdxTail < 255
         app.selectedComet.param = cometProp;
     else
         errorString = {'There is no matching instance in class structure';
-                       'Please contact the developer!'};
-          return
+            'Comet has been removed.'};
+        cometLayer = app.comet_handles.Imgs_Stretched(:,:,2,IndImgShown);
+        headLayer = app.comet_handles.Imgs_Stretched(:,:,3,IndImgShown);
+        cometLayer(cometLayer==cometIdxTail) = 0;
+        headLayer(headLayer==cometIdxTail) = 0;
+        app.comet_handles.Imgs_Stretched(:,:,2,IndImgShown) = cometLayer;
+        app.comet_handles.Imgs_Stretched(:,:,3,IndImgShown) = headLayer;
+        return
     end
 else % Predicted mask (green and magenta)
     BW2 = bwselect(app.comet_handles.Imgs_Stretched(:,:,2,app.comet_handles.IndImgShown),coor(1),coor(2));

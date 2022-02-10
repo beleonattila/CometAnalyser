@@ -46,17 +46,20 @@ while bool == 0
         bool = 1;
     end
 end
+
 % Fluorescent or Silver stained
-answer = questdlg('Is this project SILVER STAINED or FLUORESCENT?','Project type','Silver Stained','Fluorescent','Silver Stained');
-if ~isempty(answer)
-    if strcmp(answer,'Silver Stained')
-        comet_handles.FluorescenceImages = 0;
+if isempty(comet_handles.FluorescenceImages)
+    answer = questdlg('Is this project SILVER STAINED or FLUORESCENT?','Project type','Silver Stained','Fluorescent','Silver Stained');
+    if ~isempty(answer)
+        if strcmp(answer,'Silver Stained')
+            comet_handles.FluorescenceImages = 0;
+        else
+            comet_handles.FluorescenceImages = 1;
+        end
     else
-        comet_handles.FluorescenceImages = 1;
+        bool = 0;
+        return
     end
-else
-    bool = 0;
-    return
 end
 
 % Image extension
