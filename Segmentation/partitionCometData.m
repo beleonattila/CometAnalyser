@@ -27,16 +27,15 @@ rng(0);
 numFiles = numel(imds.Files);
 shuffledIndices = randperm(numFiles);
 
-% Use 70% of the images for training.
-numTrain = round(0.70 * numFiles);
-trainingIdx = shuffledIndices(1:numTrain);
+% Use 1 for testing.
+testIdx = shuffledIndices(1);
+
+% Use 80% of the images for training.
+numTrain = round(0.80 * numFiles);
+trainingIdx = shuffledIndices(2:numTrain+1);
 
 % Use 20% of the images for validation
-numVal = round(0.20 * numFiles);
-valIdx = shuffledIndices(numTrain+1:numTrain+numVal);
-
-% Use the rest for testing.
-testIdx = shuffledIndices(numTrain+numVal+1:end);
+valIdx = shuffledIndices(numTrain+2:end);
 
 % Create image datastores for training and test.
 trainingImages = imds.Files(trainingIdx);

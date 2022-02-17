@@ -39,16 +39,18 @@ function [bool, errorString] = ROI_processing(app, BB, BWout1, cometProp)
 errorString = [];
 bool = 0;
 IndImgShown = app.comet_handles.IndImgShown;
-ImgShown = app.comet_handles.Imgs_Stretched(:,:,1,IndImgShown);
+ImgShownStretched = app.comet_handles.Imgs_Stretched(:,:,1,IndImgShown);
+ImgShownOri = app.comet_handles.Imgs_Ori(:,:,1,IndImgShown);
 
-ROIori = ImgShown(BB(1,1):BB(2,1),BB(2,2):BB(1,2));
-if all(ROIori(:)==0) || all(ROIori(:)==255)
+ROIStretched = ImgShownStretched(BB(1,1):BB(2,1),BB(2,2):BB(1,2));
+ROIori = ImgShownOri(BB(1,1):BB(2,1),BB(2,2):BB(1,2));
+if all(ROIStretched(:)==0) || all(ROIStretched(:)==255)
     bool = 0;
     errorString = {'No comet was found in the region.'};
     return
 end
 
-ImgShownFiltered = medfilt2(ImgShown, [5, 5], 'symmetric');
+ImgShownFiltered = medfilt2(ImgShownOri, [5, 5], 'symmetric');
 h = fspecial('average', 3);
 ImgShownFiltered = imfilter(ImgShownFiltered, h, 'symmetric');
 ROIoriFiltered = ImgShownFiltered(BB(1,1):BB(2,1),BB(2,2):BB(1,2));
@@ -108,8 +110,8 @@ else % Comet selected by clicking on it has been segmented and classified alread
     
     BB2 = [xL, yH;... % This is the enlarged Bounding box
         xH, yL];
-    ROIori = ImgShown(BB2(1,1):BB2(2,1),BB2(2,2):BB2(1,2));
-    ROIoriFiltered = ImgShownFiltered(BB2(1,1):BB2(2,1),BB2(2,2):BB2(1,2));
+    ROIStretched = ImgShownStretched(BB2(1,1):BB2(2,1),BB2(2,2):BB2(1,2));
+    ROIoriFiltered = ImgShownOri(BB2(1,1):BB2(2,1),BB2(2,2):BB2(1,2));
     neigbourhoodMask = app.comet_handles.Imgs_Stretched(BB2(1,1):BB2(2,1),BB2(2,2):BB2(1,2),2,IndImgShown);
     if cometProp.cometID < 255
         MaskComet = neigbourhoodMask;
@@ -179,9 +181,9 @@ if length(cometIdxTail) == 1 % in case there are other segmented comets in the r
     
     
 elseif isempty(cometIdxTail)
-    ROIcomposed = falseColorsComet(ROIori, MaskHead, MaskComet, flag_CurrentCometType);
+    ROIcomposed = falseColorsComet(ROIStretched, MaskHead, MaskComet, flag_CurrentCometType);
     app.comet_handles.ROIshown = 1;
-    app.comet_handles.ROIori = ROIori;
+    app.comet_handles.ROIori = ROIStretched;
     app.comet_handles.ROIoriFiltered = ROIoriFiltered;
     app.comet_handles.ROIsegm = ROIsegm;
     app.comet_handles.MaskHead = MaskHead;

@@ -56,6 +56,13 @@ try
     % New version from: http://stackoverflow.com/questions/23463516/draw-multiple-regions-on-an-image-imfreehand
     clear BWout1
     hFigFree2 = drawfreehand(app.axes1);
+    pos = hFigFree2.Position;
+    if numel(pos)<5
+        if exist('hFigFree2', 'var'); delete(hFigFree2); end
+        errorString = {'Incorrect selection.'};
+        iscomplete = 0;
+        return
+    end
     
     % If a right ROI has been selected, this gives the opportunity to move the ROI
     wait( hFigFree2 );

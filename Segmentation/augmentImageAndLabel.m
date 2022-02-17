@@ -42,4 +42,11 @@ for i = 1:size(data,1)
     data{i,1} = imwarp(data{i,1}, tform, 'OutputView', rout);
     data{i,2} = imwarp(data{i,2}, tform, 'OutputView', rout);
     
+    % random noise
+    k = randi(10);
+    if k > 3
+        J = imnoise(data{i,1}(:,:,1),'gaussian');
+        data{i,1} = cat(3,J,J,J);
+    end
+    
 end

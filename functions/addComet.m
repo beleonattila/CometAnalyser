@@ -1,13 +1,14 @@
-function [bool, warnString] = addComet(app,className)
+function [bool, errorString] = addComet(app,className)
 % AUTHOR: Attila Beleon (E-mail: beleonattila@gmail.com)
 % DATE: April 22, 2021
+% Updated: February 17, 2022
 % NAME: addComet (version 1.0)
 %
-% Manually adding the selected comet to a class.
+% Adding the selected comet to a class.
 %
 % INPUT:
 %   app                 Handles of the application
-%   classID             Target class to add new element
+%   className           String, name of the selected class
 %
 % OUTPUT:
 %   bool                Succes indicator bool
@@ -33,34 +34,27 @@ function [bool, warnString] = addComet(app,className)
 % negligence or otherwise) arising in any way out of the use of this
 % software, even if advised of the possibility of such damage.
 
-warnString = [];
+errorString = [];
 bool = 0;
 if strcmp(app.pop_class.Value,'~No Class~')
-    warnString = {'Create a class first!'};
+    errorString = {'Create a class first!'};
     return
 end
 
 if ~isempty(app.selectedComet) % If the comet is presegmented
-%     BB = app.selectedComet.param.thumbnailCoor;
-%     coor = [round((BB(2,2)+BB(1,2))/2), round((BB(1,1)+BB(2,1))/2)];
-%     classIdx = app.comet_handles.Imgs_Composed(coor(2),coor(1),4,app.comet_handles.IndImgShown);
-%     if classIdx < 255 % If the comet is manually segmented (Red & Blue)
-        [bool2, warnString] = removeComet(app);
-        if bool2 == 0
-            warnString = {'Failed to remove comet from previous class.'};
-            return
-        end
-%     end
+    [bool2, errorString] = removeComet(app);
+    if bool2 == 0
+        errorString = {'Failed to remove comet from previous class.'};
+        return
+    end
 end
 
 MaskHead = app.comet_handles.MaskHead;
 MaskComet = app.comet_handles.MaskComet;
-% flag_CurrentCometType = app.comet_handles.flag_CurrentCometType;
 ROI_ULCyx_DRCyx = app.comet_handles.ROI_ULCyx_DRCyx;
 ULC_Yrow_roi = ROI_ULCyx_DRCyx(1,1); ULC_Xcol_roi = ROI_ULCyx_DRCyx(1,2); DRC_Yrow_roi = ROI_ULCyx_DRCyx(1,3); DRC_Xcol_roi = ROI_ULCyx_DRCyx(1,4);
 IndImgShown = app.comet_handles.IndImgShown;
 Imgs_Stretched = app.comet_handles.Imgs_Stretched(:,:,:,IndImgShown);
-% ROIori = app.comet_handles.ROIori;
 
 % To delete external pixels in case of perfect fit.
 flag_CometFitFreehand = app.comet_handles.flag_CometFitFreehand;
@@ -77,7 +71,7 @@ end
 [rowI, colI, ~] = size(Imgs_Stretched);
 cometMaskLayer = Imgs_Stretched(:,:,2);
 headMaskLayer = Imgs_Stretched(:,:,3);
-ImgMaskInd = logical(zeros(rowI, colI));
+ImgMaskInd = false(rowI, colI);
 if ~isempty(MaskHead)
     ImgMaskInd(ULC_Yrow_roi:DRC_Yrow_roi, ULC_Xcol_roi:DRC_Xcol_roi) = MaskHead;
     Inds_head = find(ImgMaskInd);
@@ -86,7 +80,7 @@ ImgMaskInd(ULC_Yrow_roi:DRC_Yrow_roi, ULC_Xcol_roi:DRC_Xcol_roi) = ImgMaskInd(UL
 Inds_comet = find(ImgMaskInd);
 
 if isempty(Inds_comet)
-    warnString = {'No comet has been selected.'};
+    errorString = {'No comet has been selected.'};
     return
 end
 
@@ -94,7 +88,7 @@ cometID = min(setdiff(1:255,cometMaskLayer),[],'all');
 
 
 if cometID == 255
-    warnString = {'You reached the limit of maximum number of objects per image.'};
+    errorString = {'You reached the limit of maximum number of objects per image.'};
     return
 end
 
@@ -107,7 +101,6 @@ end
 
 upcomingIdx = size(app.comet_handles.Classes.(className).Members,2) + 1;
 app.comet_handles.Classes.(className).Members(upcomingIdx).ImName = app.comet_handles.ImgsNames{IndImgShown};
-% app.comet_handles.Classes.(className).Members(upcomingIdx).ImID = IndImgShown;
 app.comet_handles.Classes.(className).Members(upcomingIdx).cometID = cometID;
 if ~isempty(app.imDatatipText)
     delete(app.imDatatipText)
