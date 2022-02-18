@@ -1,6 +1,7 @@
 function [bool, message] = trainSemanticSegmentationModel(path,options)
 % AUTHOR: Attila Beleon (E-mail: beleonattila@gmail.com)
 % DATE: April 14, 2021
+% Updated: February 18, 2022
 % NAME: trainSemanticSegmentationModel (version 1.0)
 %
 % INPUT:

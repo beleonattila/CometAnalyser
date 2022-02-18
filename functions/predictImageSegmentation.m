@@ -1,9 +1,14 @@
 function [bool, message] = predictImageSegmentation(app,method)
 % AUTHOR: Attila Beleon (E-mail: beleonattila@gmail.com)
 % DATE: April 26, 2021
+% Updated: February 18, 2022
 % NAME: predictImageSegmentation (version 1.0)
 %
 % Performing automatic segmentation by the selected pretrained network.
+%   This function modifies the app.comet_handles.Imgs_Streched at the
+%   predicted regions.
+%   Channel 2 - comet masks get id = 255
+%   Channel 3 - head masks get id = 255
 %
 % INPUT:
 %   app                 Handles of the application.
@@ -13,10 +18,8 @@ function [bool, message] = predictImageSegmentation(app,method)
 %                       segmentation (without red and blue)
 %
 % OUTPUT:
-%   This function modifies the app.comet_handles.Imgs_Composed at the
-%   predicted regions.
-%   Channel 1 to 3 will be modified to achieve pink and green colours
-%   Channel 4 to highlight that it's a prediction as class ID of 255
+%   bool                [0 or 1] successor
+%   message             Error message of something goes wrong
 %
 
 % Copyright © 2022 Filippo Piccinini and Attila Beleon.

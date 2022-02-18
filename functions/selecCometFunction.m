@@ -1,9 +1,10 @@
 function [iscomplete, errorString] = selecCometFunction(app)
 % AUTHOR: Attila Beleon (E-mail: beleonattila@gmail.com)
 % DATE: April 20, 2021
+% Updated: February 18, 2022 (Attila Beleon)
 % NAME: selecCometFunction (version 1.0)
 % 
-% Performing the method of comet selection from shown image by drawing a
+% Performing the method of comet selection from an image by drawing a
 % poligon or click on a presegmented comet to load into the scope for
 % manual segmentation or to perform class operations. (add or remove)
 %

@@ -1,17 +1,17 @@
 function clearAnnotationFunction(app)
 % AUTHOR: Attila Beleon (E-mail: beleonattila@gmail.com)
-% DATE: April 26, 2021
-% NAME: predictImageSegmentation (version 1.0)
+% DATE: December 20, 2021
+% Updated: February 18, 2022
+% NAME: clearAnnotationFunction (version 1.0)
 %
-% Performing automatic segmentation by the selected pretrained network.
+% Clearing all the annotations from an image.
 %
 % INPUT:
 %   app                 Handles of the application.
 %
 % OUTPUT:
-%   This function modifies the app.comet_handles.Imgs_Composed by removing
-%   green and pink colour from channel 1, 2 and 3
-%   Remove class label ID from Channel 4
+%   This function modifies the app.comet_handles.Imgs_Stretched by removing
+%   everything from channel 2 and 3.
 %
 
 % Copyright © 2022 Filippo Piccinini and Attila Beleon.

@@ -1,7 +1,8 @@
 function  Table = computeFeatures(Maski_Origj, Maski_Cometj, Maski_Tailj, Maski_Headj, Maski_Classj, Imgi_Name, Intensity_MinMax_StretchedOrig, Cellj, ULC, DRC, centroid)
 % AUTHOR: Filippo Piccinini (E-mail: filippo.piccinini85@gmail.com)
 % DATE: April 14, 2017
-% NAME: ComputeFeatures (version 1.0)
+% Updated:  February 18, 2022 (Attila Beleon)
+% NAME: computeFeatures (version 1.0)
 % 
 % To compute features starting from the mask of comet, head, ...
 %

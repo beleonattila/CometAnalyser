@@ -1,6 +1,7 @@
 function [bool, message] = createUnclassifiedClassForGreens(app)
 % AUTHOR: Attila Beleon (E-mail: beleonattila@gmail.com)
 % DATE: July 14, 2021
+% Updated:  February 18, 2022
 % NAME: createUnclassifiedClassForGreens (version 1.0)
 %
 % Iterate through images and put all the predicted green&pink comets into a
@@ -8,8 +9,10 @@ function [bool, message] = createUnclassifiedClassForGreens(app)
 %
 % INPUT:
 %   app                 Handles of the application.
-%   classID             numeric value [1 255], represent the ID of class on
-%                       channel 4
+%
+% OUTPUT:
+%   bool                [0 or 1] successor
+%   message             Error message if something goes wrong
 %
 
 % Copyright © 2022 Filippo Piccinini and Attila Beleon.

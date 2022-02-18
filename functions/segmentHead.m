@@ -1,9 +1,10 @@
 function [MaskBW, BWthreshold] = segmentHead(Img, MaskComet, ThreshAdditiveFactor, SizeDiskDilation, flag_ThresholdMode)
 % AUTHOR: Filippo Piccinini (E-mail: filippo.piccinini85@gmail.com)
 % DATE: March 21, 2017
+% Updated: February 18, 2022 (Attila Beleon)
 % NAME: segmentHead (version 1.0)
 % 
-% To segment the comet region.
+% To segment the head region.
 %
 % PARAMETERS:
 % 	Img                 Original image.
@@ -53,11 +54,7 @@ if nargin<3
 end
 
 MaskComet = uint8(MaskComet);
-
-[yrowOri, xcolOri, chsz] = size(Img);
 imageComulative = Img(MaskComet>0);
-%[n,xout] = hist(imageComulative(:),[0:1:255]); figure, bar(xout,n./sum(n)), grid, axis([0 255 0 0.1])
-
 
 % Automatic threshold
 if flag_ThresholdMode == 1
@@ -97,7 +94,7 @@ if BinThresh>255
 end
 BWthreshold = BinThresh/255;
 if BWthreshold<0; BWthreshold=0; elseif BWthreshold>255; BWthreshold=255; end
-MaskBW01 = uint8(im2bw(Img,BWthreshold));
+MaskBW01 = uint8(imbinarize(Img,BWthreshold));
 
 % Pixels out of the original segmentation
 MaskComet(MaskComet>0) = 1;

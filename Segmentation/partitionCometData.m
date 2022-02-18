@@ -1,7 +1,24 @@
 function [imdsTrain, imdsVal, imdsTest, pxdsTrain, pxdsVal, pxdsTest] = partitionCometData(imds,pxds)
-% TODO
-% Partition Comet data by randomly selecting 80% of the data for training. The
-% rest is used for testing.
+% AUTHOR: Attila Beleon (E-mail: beleonattila@gmail.com)
+% DATE: April 2, 2021
+% Updated: February 18, 2022
+% NAME: partitionCometData (version 1.0)
+%
+% Partition Comet data by randomly selecting 80% of the data for training,
+% 20% for validation and 1 image for testing.
+%
+% INPUT:
+% 	imds                Image data store
+%   pxds                Pixel label data store
+%
+%
+% OUTPUT:
+%   imdsTrain           Image partition for training
+%   imdsVal             Image partition for Validation
+%   imdsTest            Image partition for Test
+%   pxdsTrain           Label partition for training
+%   pxdsVal             Label partition for Validation
+%   pxdsTest            Label partition for Test
 
 % Copyright © 2022 Filippo Piccinini and Attila Beleon.
 % Contacts: filippo.piccinini85@gmail.com and beleonattila@gmail.com

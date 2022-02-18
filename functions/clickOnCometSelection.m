@@ -1,6 +1,7 @@
 function [iscomplete, errorString] = clickOnCometSelection(app, coor)
 % AUTHOR: Attila Beleon (E-mail: beleonattila@gmail.com)
 % DATE: April 22, 2021
+% Updated: February 18, 2022
 % NAME: clickOnCometSelection (version 1.0)
 %
 % Select an already segmented comet by simply click on it
@@ -10,7 +11,7 @@ function [iscomplete, errorString] = clickOnCometSelection(app, coor)
 %   coor                Coordinates of cursor
 %
 % OUTPUT:
-%   bool                Succes indicator bool
+%   iscomplete          Succes indicator bool
 %   errorString         Error message if something goes wrong
 %
 

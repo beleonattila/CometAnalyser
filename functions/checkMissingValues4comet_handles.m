@@ -1,6 +1,7 @@
 function [bool, comet_handles] = checkMissingValues4comet_handles(comet_handles)
 % AUTHOR: Attila Beleon (E-mail: beleonattila@gmail.com)
 % DATE: Jan 11, 2022
+% Updated: February 17, 2022
 % NAME: checkMissingValues4comet_handles (version 1.0)
 %
 % Check missing values in handle and ask for input.

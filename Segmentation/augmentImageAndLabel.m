@@ -1,7 +1,23 @@
 function data = augmentImageAndLabel(data, xTrans, yTrans, rotVector, scaleVector)
-% TODO comment and header
-% Augment images and pixel label images using random reflection and
-% translation.
+% AUTHOR: Attila Beleon (E-mail: beleonattila@gmail.com)
+% DATE: April 2, 2021
+% Updated: February 18, 2022
+% NAME: augmentImageAndLabel (version 1.0)
+%
+% Augment images and pixel label images using random reflection,
+% translation, rotation, resize and noise.
+%
+% INPUT:
+% 	data                Original data for segmentation
+%   xTrans              Transition value for X direction
+%   yTrans              Transition value for Y direction
+%   rotVector           Rotation angle
+%   scaleVector         Vector with max and min values of scaling values
+%
+%
+% OUTPUT:
+%   data                Augmented data
+%
 
 % Copyright © 2022 Filippo Piccinini and Attila Beleon.
 % Contacts: filippo.piccinini85@gmail.com and beleonattila@gmail.com

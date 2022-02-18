@@ -1,17 +1,17 @@
 function clearSegmentationFunction(app)
 % AUTHOR: Attila Beleon (E-mail: beleonattila@gmail.com)
 % DATE: April 26, 2021
-% NAME: predictImageSegmentation (version 1.0)
+% Updated: February 18, 2022
+% NAME: clearSegmentationFunction (version 1.0)
 %
-% Performing automatic segmentation by the selected pretrained network.
+% Clearing masks created by automatic segmentation.
 %
 % INPUT:
 %   app                 Handles of the application.
 %
 % OUTPUT:
-%   This function modifies the app.comet_handles.Imgs_Composed by removing
-%   green and pink colour from channel 1, 2 and 3
-%   Remove class label ID from Channel 4
+%   This function modifies the app.comet_handles.Imgs_Streched by removing
+%   masks with the ID = 255, from channel 2 and 3. (green and pink)
 %
 
 % Copyright © 2022 Filippo Piccinini and Attila Beleon.

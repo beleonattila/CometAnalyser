@@ -1,7 +1,15 @@
 function pixelLabelColorbar(cmap, classNames)
-% TODO
+% AUTHOR: Attila Beleon (E-mail: beleonattila@gmail.com)
+% DATE: April 2, 2021
+% Updated: February 18, 2022
+% NAME: pixelLabelColorbar (version 1.0)
+%
 % Add a colorbar to the current axis. The colorbar is formatted
 % to display the class names with the color.
+%
+% INPUT:
+% 	cmap                Color map
+%   classNames          Class names
 
 % Copyright © 2022 Filippo Piccinini and Attila Beleon.
 % Contacts: filippo.piccinini85@gmail.com and beleonattila@gmail.com

@@ -1,5 +1,24 @@
 function tempIm = classFilteredImage(im, mask, cLabel, score, cnum, classNames, cometIDs)
-% TODO comment and header
+% AUTHOR: Attila Beleon (E-mail: beleonattila@gmail.com)
+% DATE: September 13, 2021
+% Updated: February 17, 2022
+% NAME: classFilteredImage (version 1.0)
+%
+% Applying colorized bounding boxes with texts on an image, based on the
+% classigication results.
+%
+% INPUT:
+%   im                  RGB image
+%   mask                Binary image of the object
+%   cLabel              Array containing ID of calsses as prediction result
+%   score               Score of the classification by each instances
+%   cnum                Number of cells
+%   classNames          Cell contiaing strings of class names
+%   cometIDs            Array contains the IDs of each comets
+%
+% OUTPUT:
+%   tempIm              Image with labels on it
+%
 
 % Copyright © 2022 Filippo Piccinini and Attila Beleon.
 % Contacts: filippo.piccinini85@gmail.com and beleonattila@gmail.com

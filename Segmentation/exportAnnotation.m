@@ -1,5 +1,20 @@
 function [bool, message] = exportAnnotation(app, path)
-% TODO comments and header
+% AUTHOR: Attila Beleon (E-mail: beleonattila@gmail.com)
+% DATE: April 2, 2021
+% Updated: February 18, 2022
+% NAME: exportAnnotation (version 1.0)
+%
+% Exporting images and masks.
+%
+% INPUT:
+% 	app                 Handles of the APP
+%   path                Selected path to save images
+%
+%
+% OUTPUT:
+%   bool                Succssor
+%   message             Error message if something goes wrong
+%
 
 % Copyright © 2022 Filippo Piccinini and Attila Beleon.
 % Contacts: filippo.piccinini85@gmail.com and beleonattila@gmail.com

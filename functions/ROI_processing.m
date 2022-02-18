@@ -1,6 +1,7 @@
 function [bool, errorString] = ROI_processing(app, BB, BWout1, cometProp)
 % AUTHOR: Attila Beleon (E-mail: beleonattila@gmail.com)
 % DATE: April 20, 2021
+% Updated: February 18, 2022
 % NAME: ROI_processing (version 1.0)
 %
 % Calculating the required data for app.comet_handles.Roi and .masks
@@ -10,7 +11,8 @@ function [bool, errorString] = ROI_processing(app, BB, BWout1, cometProp)
 %   app                 Handles of the application.
 % 	BB                  Bounding box of selected comet to show in scope
 %   BWout1              Binary mask image of selected comet
-%   cometProp           TODO
+%   cometProp           Struct containing the ID of the comet and the image
+%                       name
 %
 % OUTPUT:
 %   bool                Succes indicator bool

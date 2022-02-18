@@ -1,6 +1,7 @@
 function classCatalog = composeClassImage(Classes, imgs, ImgsNames, axesWidth)
-% AUTHOR:	Attila Beleon
+% AUTHOR:	Attila Beleon (E-mail: beleonattila@gmail.com)
 % DATE: 	Augustus 27, 2020
+% Updated:  February 18, 2022
 % NAME: 	composeClassCatalog
 %
 % To create the table-like image containing the thumbnails of a class of
@@ -11,6 +12,9 @@ function classCatalog = composeClassImage(Classes, imgs, ImgsNames, axesWidth)
 %                   coordinates
 %
 %   imgs            Cut out thumbnails from these images
+%   ImgsNames       Cell array containing image names
+%   axesWidth       The width of the axes, this parameter gives the width
+%                   of the output image.
 %
 % OUTPUT:
 %   classCatalog    n-by-3 cell array, contains classNames, catalogImages

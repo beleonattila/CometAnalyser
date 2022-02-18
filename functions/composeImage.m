@@ -1,5 +1,21 @@
 function composedImage = composeImage(im)
-% TODO header and comments
+% AUTHOR:	Attila Beleon (E-mail: beleonattila@gmail.com)
+% DATE: 	January 27, 2022
+% Updated:  February 18, 2022
+% NAME: 	composeImage
+%
+% To create the table-like image containing the thumbnails of a class of
+% annotated comets.
+%
+% INPUT:
+%   im              3 channel image
+%                   ch1 = grey scale image
+%                   ch2 = comet masks
+%                   ch3 = head masks
+%
+% OUTPUT:
+%   composedImage   RGB image with colors
+%
 
 % Copyright © 2022 Filippo Piccinini and Attila Beleon.
 % Contacts: filippo.piccinini85@gmail.com and beleonattila@gmail.com

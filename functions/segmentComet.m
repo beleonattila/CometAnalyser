@@ -1,11 +1,12 @@
 function [MaskBW, BWthreshold] = segmentComet(Img, ManualSegmBW, ThreshAdditiveFactor, SizeDiskDilation, flag_ThresholdMode)
 % AUTHOR: Filippo Piccinini (E-mail: filippo.piccinini85@gmail.com)
 % DATE: March 14, 2017
+% Updated: February 18, 2022 (Attila Beleon)
 % NAME: segmentComet (version 1.0)
 % 
 % To segment the comet region.
 %
-% PARAMETERS:
+% INPUT:
 % 	Img                 Original image.
 %   ManualSegmBW        FG manually segmented.
 %   ThreshAdditiveFactor Input additive factor for threshold.
@@ -53,10 +54,7 @@ if nargin<3
 end
 
 ManualSegmBW = uint8(ManualSegmBW);
-
-% [yrowOri, xcolOri, chsz] = size(Img);
 imageComulative = Img(:);
-%[n,xout] = hist(imageComulative(:),[0:1:255]); figure, bar(xout,n./sum(n)), grid, axis([0 255 0 0.1])
 
 % Automatic threshold
 if flag_ThresholdMode == 0

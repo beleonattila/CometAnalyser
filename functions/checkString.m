@@ -1,6 +1,7 @@
 function [bool,msg] = checkString(toBeChecked, forbidden, capital, number, glyph, space, initial, text)
 % AUTHOR:   Attila Beleon
 % DATE:     July 1, 2020
+% Updated:  February 17, 2022
 % NAME:     checkString
 %
 % Checks for specific string properties of an input. If the input is not a
@@ -98,11 +99,11 @@ if ~isempty(space)
 end
 
 if ~isempty(initial)
-    if strcmp(initial,'n') && (isempty(str2num(toBeChecked(1))) || ~isempty(regexp(toBeChecked(1),'\W','once')) || ~isempty(regexp(toBeChecked,'\s','once')))
+    if strcmp(initial,'n') && (isempty(str2double(toBeChecked(1))) || ~isempty(regexp(toBeChecked(1),'\W','once')) || ~isempty(regexp(toBeChecked,'\s','once')))
         bool = 0;
         msg = ['Initial of ' text ' must be numeric!'];
         return;
-    elseif strcmp(initial,'c') && (~isempty(str2num(toBeChecked(1))) || ~isempty(regexp(toBeChecked(1),'\W','once')) || ~isempty(regexp(toBeChecked,'\s','once')))
+    elseif strcmp(initial,'c') && (~isempty(str2double(toBeChecked(1))) || ~isempty(regexp(toBeChecked(1),'\W','once')) || ~isempty(regexp(toBeChecked,'\s','once')))
         bool = 0;
         msg = ['Initial of ' text ' must be char!'];
         return;
