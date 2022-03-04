@@ -1,4 +1,4 @@
-function data = augmentImageAndLabel(data, xTrans, yTrans, rotVector, scaleVector)
+function data = augmentImageAndLabel(data, xTrans, yTrans, rotVector, scaleVector, intensityThreshold)
 % AUTHOR: Attila Beleon (E-mail: beleonattila@gmail.com)
 % DATE: April 2, 2021
 % Updated: February 18, 2022
@@ -12,7 +12,9 @@ function data = augmentImageAndLabel(data, xTrans, yTrans, rotVector, scaleVecto
 %   xTrans              Transition value for X direction
 %   yTrans              Transition value for Y direction
 %   rotVector           Rotation angle
-%   scaleVector         Vector with max and min values of scaling values
+%   scaleVector         Vector with min and max values of scaling values
+%   intensityThreshold  Vector with min and max values of random intensity
+%                       scaling
 %
 %
 % OUTPUT:
@@ -60,9 +62,25 @@ for i = 1:size(data,1)
     
     % random noise
     k = randi(10);
-    if k > 3
-        J = imnoise(data{i,1}(:,:,1),'gaussian');
+    if k > 1
+        if k > 8
+            J = imnoise(data{i,1}(:,:,1),'gaussian',0.001,0.005);
+        elseif k < 4
+            J = imnoise(data{i,1}(:,:,1),'poisson');
+        else
+            J = imnoise(data{i,1}(:,:,1),'speckle');
+        end
         data{i,1} = cat(3,J,J,J);
+    end
+    
+    % random intensity
+    if randi([0 1])
+        randScaler = intensityThreshold(1) + rand * range(intensityThreshold);
+        data{i,1} = data{i,1}.*randScaler;
+    elseif randi([0 1])
+        medianInt = median(data{i,1},'all');
+        randScaler = medianInt * (intensityThreshold(1) + rand * range(intensityThreshold));
+        data{i,1} = data{i,1} + randScaler;
     end
     
 end

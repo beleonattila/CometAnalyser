@@ -164,7 +164,8 @@ xTrans = [-15 15];
 yTrans = [-15 15];
 rotVector = [-90, 90];
 scaleVector = [0.8, 1.2];
-dsTrain = transform(dsTrain, @(data)augmentImageAndLabel(data,xTrans,yTrans,rotVector,scaleVector));
+intensityThreshold = [0.7 1.5];
+dsTrain = transform(dsTrain, @(data)augmentImageAndLabel(data,xTrans,yTrans,rotVector,scaleVector,intensityThreshold));
 
 doTraining = true;
 if doTraining

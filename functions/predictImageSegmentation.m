@@ -51,11 +51,13 @@ end
 try
     message = {'Loading the model, please wait...'};
     dlgHandle = msgbox(sprintf(message{:}),'Training','help');
-    sysMem = memory;
-    modelFileInfo = dir(app.comet_handles.segmentationOptions.modelPath);
-    if sysMem.MaxPossibleArrayBytes < modelFileInfo.bytes
-        message = {'Not enough memory to load the Pre-trained Neural Network for segmentation.'};
-        return
+    if ispc
+        sysMem = memory;
+        modelFileInfo = dir(app.comet_handles.segmentationOptions.modelPath);
+        if sysMem.MaxPossibleArrayBytes < modelFileInfo.bytes
+            message = {'Not enough memory to load the Pre-trained Neural Network for segmentation.'};
+            return
+        end
     end
     load(app.comet_handles.segmentationOptions.modelPath);
     if isempty(who('net'))
@@ -109,56 +111,39 @@ if ~any(idx)
     return
 end
 
-memoryRequirement = numel(app.comet_handles.Imgs_Stretched(:,:,1,idx))*5;
-imByIm = 0;
+% memoryRequirement = numel(app.comet_handles.Imgs_Stretched(:,:,1,idx))*5;
 env = app.comet_handles.segmentationOptions.ExecutionEnvironment;
-if strcmp(env,'auto') || strcmp(env,'gpu') || strcmp(env,'multi-gpu')
+if strcmp(env,'gpu') || strcmp(env,'multi-gpu')
     tGPU = gpuDeviceTable;
     if ~isempty(tGPU)
         indx = tGPU.DeviceAvailable == true;
-        if sum(indx) > 0
-            imByIm = 1;
-        else
-            if strcmp(env,'gpu') || strcmp(env,'multi-gpu')
-                message = {'There is no GPU available.'};
-                warndlg(message,'Environment')
-            end
-            sysMem = memory;
-            if sysMem.MaxPossibleArrayBytes < memoryRequirement
-                imByIm = 1;
-            end
-        end
-    else
-        if strcmp(env,'gpu') || strcmp(env,'multi-gpu')
+        if sum(indx) == 0
             message = {'There is no GPU available.'};
             warndlg(message,'Environment')
         end
-        sysMem = memory;
-        if sysMem.MaxPossibleArrayBytes < memoryRequirement
-            imByIm = 1;
-        end
-    end
-elseif strcmp(env,'cpu')
-    sysMem = memory;
-    if sysMem.MaxPossibleArrayBytes < memoryRequirement
-        imByIm = 1;
+    else
+        message = {'There is no GPU available.'};
+        warndlg(message,'Environment')
     end
 end
 
 inputSize = net.Layers(1).InputSize;
 OrigImageSize = size(app.comet_handles.Imgs_Stretched(:,:,1,1));
-    
-if imByIm == 0
-    
-    tempIm = app.comet_handles.Imgs_Stretched(:,:,1,idx);
+
+wb = waitbar(0,'Segmentation in progress. Please wait...');
+numIm2Segmentation = sum(idx);
+idx2 = find(idx);
+for i = 1:sum(idx)
+    tempIm = app.comet_handles.Imgs_Stretched(:,:,1,idx2(i));
     I = cat(3,tempIm,tempIm,tempIm);
     clear('tempIm');
     
     imageSize = OrigImageSize;
     padSize = zeros(1,2);
     if any(inputSize(1:2) ~= imageSize(1:2))
-        
-        warndlg('The image size in this project is not identical to the input size of the segmentation model. This can cause performance drop.');
+        if i == 1
+            warndlg('The image size in this project is not identical to the input size of the segmentation model. This can cause performance drop.');
+        end
         imSizeDiff = inputSize(1:2) - imageSize(1:2);
         
         % If the project images are larger
@@ -189,14 +174,7 @@ if imByIm == 0
         I = imresize(I,inputSize(1:2));
     end
     
-    
-    progressfig = uifigure;
-    uiprogressdlg(progressfig,'Title','Performing prediction. Please wait...',...
-        'Indeterminate','on');
-    pause(2)
-    
     [C, ~, ~] = semanticseg(I, net);
-    clear('net')
     clear('I')
     C8 = uint8(C);
     clear('C')
@@ -223,91 +201,14 @@ if imByIm == 0
     segmentedHead(C8 == 1) = 255;
     segmentedHead(segmentedHead~=255) = 0;
     clear('C8')
-
-    app.comet_handles.Imgs_Stretched(:,:,2,idx) = segmentedComet;
-    app.comet_handles.Imgs_Stretched(:,:,3,idx) = segmentedHead;
-    delete(progressfig)
-else
-    wb = waitbar(0,'Segmentation in progress. Please wait...');
-    numIm2Segmentation = sum(idx);
-    idx2 = find(idx);
-    for i = 1:sum(idx)
-        tempIm = app.comet_handles.Imgs_Stretched(:,:,1,idx2(i));
-        I = cat(3,tempIm,tempIm,tempIm);
-        clear('tempIm');
-        
-        imageSize = OrigImageSize;
-        padSize = zeros(1,2);
-        if any(inputSize(1:2) ~= imageSize(1:2))
-            if i == 1
-                warndlg('The image size in this project is not identical to the input size of the segmentation model. This can cause performance drop.');
-            end
-            imSizeDiff = inputSize(1:2) - imageSize(1:2);
-            
-            % If the project images are larger
-            if any(imSizeDiff<0)
-                [~,ImMinIdx] = min(imSizeDiff);
-                imScaler = [nan nan];
-                imScaler(ImMinIdx) = inputSize(ImMinIdx);
-                I = imresize(I,imScaler);
-                imageSize = size(I);
-                imSizeDiff = inputSize(1:2) - imageSize(1:2);
-            end
-            
-            % If the project images are smaller
-            
-            if imSizeDiff(1)
-                if imSizeDiff(1)>0
-                    padSize(1) = imSizeDiff(1);
-                end
-            end
-            
-            if imSizeDiff(2)
-                if imSizeDiff(2)>0
-                    padSize(2) = imSizeDiff(2);
-                end
-            end
-            
-            I = padarray(I,round(padSize./2),0,'both');
-            I = imresize(I,inputSize(1:2));
-        end
-        
-        [C, ~, ~] = semanticseg(I, net);
-        clear('I')
-        C8 = uint8(C);
-        clear('C')
-        if any(padSize)
-            if padSize(1)
-                C8(1:round(padSize(1)./2),:,:) = [];
-                C8(end-round(padSize(1)./2):end,:,:) = [];
-            end
-            if padSize(2)
-                C8(:,1:round(padSize(2)./2),:) = [];
-                C8(:,end-round(padSize(2)./2):end,:) = [];
-            end
-        end
-        C8 = imresize(C8,OrigImageSize(1:2));
-        C8(C8 == 3) = 0;
-        BW = imbinarize(C8);
-        BW_fill = imfill(BW, 4, 'holes');
-        BW_open = bwareaopen(BW_fill,250,4);
-        se = strel('disk',20);
-        BW2 = imclose(BW_open,se);
-        C8(~BW2) = 0;
-        segmentedComet = uint8(BW2) * 255;
-        segmentedHead = C8;
-        segmentedHead(C8 == 1) = 255;
-        segmentedHead(segmentedHead~=255) = 0;
-        clear('C8')
-        
-        app.comet_handles.Imgs_Stretched(:,:,2,idx2(i)) = segmentedComet;
-        app.comet_handles.Imgs_Stretched(:,:,3,idx2(i)) = segmentedHead;
-        if ishandle(wb)
-            waitbar(i/numIm2Segmentation,wb,sprintf('Segmentation in progress. Please wait...\n %d / %d',[i,numIm2Segmentation]))
-        end
+    
+    app.comet_handles.Imgs_Stretched(:,:,2,idx2(i)) = segmentedComet;
+    app.comet_handles.Imgs_Stretched(:,:,3,idx2(i)) = segmentedHead;
+    if ishandle(wb)
+        waitbar(i/numIm2Segmentation,wb,sprintf('Segmentation in progress. Please wait...\n %d / %d',[i,numIm2Segmentation]))
     end
-    if ishandle(wb), close(wb), end
 end
+if ishandle(wb), close(wb), end
 message = {'Segmentation done.';...
             '';...
             [num2str(sum(idx)),' image(s) have been segmented.']};

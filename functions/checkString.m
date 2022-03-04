@@ -99,11 +99,11 @@ if ~isempty(space)
 end
 
 if ~isempty(initial)
-    if strcmp(initial,'n') && (isempty(str2double(toBeChecked(1))) || ~isempty(regexp(toBeChecked(1),'\W','once')) || ~isempty(regexp(toBeChecked,'\s','once')))
+    if strcmp(initial,'n') && (isnan(str2double(toBeChecked(1))) || ~isempty(regexp(toBeChecked(1),'\W','once')) || ~isempty(regexp(toBeChecked,'\s','once')))
         bool = 0;
         msg = ['Initial of ' text ' must be numeric!'];
         return;
-    elseif strcmp(initial,'c') && (~isempty(str2double(toBeChecked(1))) || ~isempty(regexp(toBeChecked(1),'\W','once')) || ~isempty(regexp(toBeChecked,'\s','once')))
+    elseif strcmp(initial,'c') && (~isnan(str2double(toBeChecked(1))) || ~isempty(regexp(toBeChecked(1),'\W','once')) || ~isempty(regexp(toBeChecked,'\s','once')))
         bool = 0;
         msg = ['Initial of ' text ' must be char!'];
         return;
