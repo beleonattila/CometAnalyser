@@ -1,7 +1,7 @@
 function [bool, errorString] = addComet(app,className)
 % AUTHOR: Attila Beleon (E-mail: beleonattila@gmail.com)
 % DATE: April 22, 2021
-% Updated: February 17, 2022
+% Updated: March 14, 2022
 % NAME: addComet (version 1.0)
 %
 % Adding the selected comet to a class.
@@ -108,4 +108,5 @@ if ~isempty(app.imDatatipText)
 end
 app.comet_handles.Imgs_Stretched(:,:,:,IndImgShown) = Imgs_Stretched;
 app.comet_handles.FlagNewComets = app.comet_handles.FlagNewComets + 1;
+app.comet_handles.uniqueIdentifier = now;
 bool = 1;

@@ -1,4 +1,4 @@
-function Image = AddTextToImage(Image,String,Position,Color,Font,FontSize)
+function Img = AddTextToImage(Img,String,Position,Color,Font,FontSize)
 
 % Image = AddTextToImage(Image,String,Position,Color,Font,FontSize)
 %
@@ -19,10 +19,10 @@ function Image = AddTextToImage(Image,String,Position,Color,Font,FontSize)
 % Particle Therapy Cancer Research Institute
 % University of Oxford
 
-if ~exist('Image','var') || isempty(Image)
+if ~exist('Image','var') || isempty(Img)
     % Sample image
-    Image = linspace(0,1,500)'*(linspace(0,1,500));
-    Image = cat(3,Image,rot90(Image),rot90(Image,2));
+    Img = linspace(0,1,500)'*(linspace(0,1,500));
+    Img = cat(3,Img,rot90(Img),rot90(Img,2));
 end
 if ~exist('String','var')
     String = 'No string specified.';
@@ -41,17 +41,17 @@ if ~exist('FontSize','var')
 end
 
 % uint8 images go from 0 to 255, whereas double ones go from 0 to 1
-if isa(Image, 'uint8')
+if isa(Img, 'uint8')
     ScaleFactor = 255;
 else
     ScaleFactor = 1;
 end
 
 % monochrome images need monochrome text, colour images need colour text
-if ndims(Image) == 2 %#ok<ISMAT>
+if ndims(Img) == 2 %#ok<ISMAT>
     Color = Color(1); % Modified from Filippo Piccinini filippo.piccinini85@gmail.com. It was "Color = mean(Color(:));", now it is "Color = Color(1);"
 end
-if ndims(Image) == 3 && numel(Color) == 1
+if ndims(Img) == 3 && numel(Color) == 1
     Color = [Color Color Color];
 end
 
@@ -61,17 +61,17 @@ TextMask = RasterizeText(String,Font,FontSize);
 
 % only try adding text if some of it will actually overlay the image
 
-if Position(1) < size(Image,1) && Position(2) < size(Image,2) ...
+if Position(1) < size(Img,1) && Position(2) < size(Img,2) ...
         && Position(1) + size(TextMask,1) > 0 && Position(2) + size(TextMask,2) > 0
 
-    if Position(1) + size(TextMask,1) > size(Image,1)
-        TextMask = TextMask(1:(size(Image,1)-Position(1)),:);
+    if Position(1) + size(TextMask,1) > size(Img,1)
+        TextMask = TextMask(1:(size(Img,1)-Position(1)),:);
     end
-    if Position(2) + size(TextMask,2) > size(Image,2)
-        TextMask = TextMask(:,1:(size(Image,2)-Position(2)));
+    if Position(2) + size(TextMask,2) > size(Img,2)
+        TextMask = TextMask(:,1:(size(Img,2)-Position(2)));
     end
-    if any(size(TextMask) ~= [size(Image,1) size(Image,2)]-Position) % save the bottom-right pixel if it's already in the mask
-        TextMask(size(Image,1)-Position(1),size(Image,2)-Position(2)) = false;
+    if any(size(TextMask) ~= [size(Img,1) size(Img,2)]-Position) % save the bottom-right pixel if it's already in the mask
+        TextMask(size(Img,1)-Position(1),size(Img,2)-Position(2)) = false;
     end
     
     if Position(1) > 0
@@ -90,9 +90,9 @@ if Position(1) < size(Image,1) && Position(2) < size(Image,2) ...
     Color = ScaleFactor*Color;
 
     for i=1:length(Color)
-        tmp = Image(:,:,i); % to use logical indexing;
+        tmp = Img(:,:,i); % to use logical indexing;
         tmp(TextMask) = Color(i);
-        Image(:,:,i) = tmp;
+        Img(:,:,i) = tmp;
     end
 
 end

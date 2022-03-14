@@ -1,7 +1,7 @@
 function [bool, warnString] = removeComet(app)
 % AUTHOR: Attila Beleon (E-mail: beleonattila@gmail.com)
 % DATE: April 26, 2021
-% Updated: February 18, 2022
+% Updated: March 14, 2022
 % NAME: removeComet (version 1.0)
 %
 % Removing the selected, presegmented and classified comet from its class.
@@ -80,5 +80,5 @@ if ~isempty(app.imDatatipText)
     delete(app.imDatatipText)
     app.imDatatipText = [];
 end
-
+app.comet_handles.uniqueIdentifier = now;
 bool = 1;

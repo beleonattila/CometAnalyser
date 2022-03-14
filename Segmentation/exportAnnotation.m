@@ -1,7 +1,7 @@
 function [bool, message] = exportAnnotation(app, path)
 % AUTHOR: Attila Beleon (E-mail: beleonattila@gmail.com)
 % DATE: April 2, 2021
-% Updated: February 18, 2022
+% Updated: March 14, 2022
 % NAME: exportAnnotation (version 1.0)
 %
 % Exporting images and masks.
@@ -42,10 +42,20 @@ message = [];
 maskFolderName = 'Masks';
 imagesFolderName = 'Images';
 
-if ~isfolder(fullfile(path, maskFolderName))
+if exist(fullfile(path, maskFolderName),"dir")
+    answer = questdlg('The selected folder is not empty. Would you like to continue?','Not empty folder','Continue','Cancel','Cancel');
+    if strcmp(answer,'Continue')
+        mkdir(fullfile(path, maskFolderName))
+        mkdir(fullfile(path, imagesFolderName))
+    else
+        message = {'Process terminated.'};
+        return
+    end
+else
     mkdir(fullfile(path, maskFolderName))
     mkdir(fullfile(path, imagesFolderName))
 end
+
 imNames = app.comet_handles.ImgsNames;
 ids = find(any(any(app.comet_handles.Imgs_Stretched(:,:,2,:))));
 if ~isempty(ids)
