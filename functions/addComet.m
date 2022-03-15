@@ -108,5 +108,5 @@ if ~isempty(app.imDatatipText)
 end
 app.comet_handles.Imgs_Stretched(:,:,:,IndImgShown) = Imgs_Stretched;
 app.comet_handles.FlagNewComets = app.comet_handles.FlagNewComets + 1;
-app.comet_handles.uniqueIdentifier = now;
+app.comet_handles.uniqueIdentifier = str2double(erase(datestr(now,30),'T'));
 bool = 1;

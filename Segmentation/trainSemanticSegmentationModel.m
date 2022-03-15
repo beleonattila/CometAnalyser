@@ -29,13 +29,27 @@ function [bool, message] = trainSemanticSegmentationModel(path,options)
 bool = 0;
 message = [];
 baseFolder = path;
+networkParamPath = fullfile('models','segmentation');
+networkParamFileName = 'Network_param.mat';
 
 if ~exist(fullfile(baseFolder,'Images'),'dir') || ~exist(fullfile(baseFolder,'Masks'),'dir')
     message = {'The selected folder does not contain annotated data.';...
                 'It does not contain the two required subfolders named ''Images'' and ''Masks''.'};
     return
 end
-
+if exist(networkParamPath,'dir')
+    paramFile = dir(fullfile(networkParamPath,"*.mat"));
+    if ~any(strcmp({paramFile.name},networkParamFileName))
+        message = {'Missing network parameter file.';...
+            'Please network parameter file.';
+            'For more information read the User Manual.'};
+        return
+    end
+    message = {'Missing folder structure.';...
+        ['Please check the existance of ',networkParamPath,' folder.'];
+        'For more information read the User Manual.'};
+    return
+end
 imgDir = fullfile(baseFolder,'Images');
 labelDir = fullfile(baseFolder,'Masks');
 
@@ -92,13 +106,13 @@ ylabel('Frequency')
 
 [imdsTrain, imdsVal, imdsTest, pxdsTrain, pxdsVal, pxdsTest] = partitionCometData(imds,pxds);
 
-numTrainingImages = numel(imdsTrain.Files)
+numTrainingImages = numel(imdsTrain.Files);
 % numTrainingImages = numel(imds.Files)
 
-numValImages = numel(imdsVal.Files)
+% numValImages = numel(imdsVal.Files);
 % numValImages = numel(Vimds.Files)
 
-numTestingImages = numel(imdsTest.Files)
+numTestingImages = numel(imdsTest.Files);
 
 % Specify the network image size. This is typically the same as the traing image sizes.
 [w, h, c] = size(I);
@@ -108,14 +122,15 @@ imageSize = [w, h, c];
 numClasses = numel(classes);
 
 % Create DeepLab v3+.
-lgraph = deeplabv3plusLayers(imageSize, numClasses, "resnet18");
+%     lgraph = deeplabv3plusLayers(imageSize, numClasses, "resnet18");
+lgraph = loadPretrainedCometNetwrok(fullfile(networkParamPath,networkParamFileName));
 
 imageFreq = tbl.PixelCount ./ tbl.ImagePixelCount;
 imageFreq(isnan(imageFreq)) = min(imageFreq) * 0.00001;
 classWeights = median(imageFreq) ./ imageFreq;
 
-pxLayer = pixelClassificationLayer('Name','labels','Classes',tbl.Name,'ClassWeights',classWeights);
-lgraph = replaceLayer(lgraph,"classification",pxLayer);
+% pxLayer = pixelClassificationLayer('Name','labels','Classes',tbl.Name,'ClassWeights',classWeights);
+% lgraph = replaceLayer(lgraph,"classification",pxLayer);
 
 % Define validation data.
 dsVal = combine(imdsVal,pxdsVal);
@@ -167,13 +182,7 @@ scaleVector = [0.8, 1.2];
 intensityThreshold = [0.7 1.5];
 dsTrain = transform(dsTrain, @(data)augmentImageAndLabel(data,xTrans,yTrans,rotVector,scaleVector,intensityThreshold));
 
-doTraining = true;
-if doTraining
-    [net, info] = trainNetwork(dsTrain,lgraph,options);
-else
-    data = load(pretrainedNetwork); 
-    net = data.net;
-end
+[net, ~] = trainNetwork(dsTrain,lgraph,options);
 
 idx = randi(numTestingImages);
 I = readimage(imdsTest,idx);

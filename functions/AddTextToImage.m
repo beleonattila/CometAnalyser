@@ -19,7 +19,7 @@ function Img = AddTextToImage(Img,String,Position,Color,Font,FontSize)
 % Particle Therapy Cancer Research Institute
 % University of Oxford
 
-if ~exist('Image','var') || isempty(Img)
+if ~exist('Img','var') || isempty(Img)
     % Sample image
     Img = linspace(0,1,500)'*(linspace(0,1,500));
     Img = cat(3,Img,rot90(Img),rot90(Img,2));

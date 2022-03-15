@@ -47,9 +47,9 @@ function Table = computeFeatures(Maski_Origj, Maski_Cometj, Maski_Tailj,Maski_He
 
 
 % Check if there are functions
-Table.ImageName{1,1} = char(Imgi_Name);
-Table.CometID{1,1} = Cellj;
-Table.CometClass{1,1} = Maski_Classj;
+Table.ImageName = char(Imgi_Name);
+Table.CometID = Cellj;
+Table.CometClass = Maski_Classj;
 Table.centroidX = centroid(1);
 Table.centroidY = centroid(2);
 Table.xL = ULC(1);

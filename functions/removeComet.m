@@ -80,5 +80,5 @@ if ~isempty(app.imDatatipText)
     delete(app.imDatatipText)
     app.imDatatipText = [];
 end
-app.comet_handles.uniqueIdentifier = now;
+app.comet_handles.uniqueIdentifier = str2double(erase(datestr(now,30),'T'));
 bool = 1;
