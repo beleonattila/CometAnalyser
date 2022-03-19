@@ -373,4 +373,4 @@ lgraph = connectLayers(lgraph,"dec_upsample1","dec_crop1/in");
 lgraph = connectLayers(lgraph,"dec_crop1","dec_cat1/in2");
 lgraph = connectLayers(lgraph,"dec_upsample2","dec_crop2/in");
 
-plot(lgraph);
+% plot(lgraph);
