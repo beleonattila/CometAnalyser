@@ -99,10 +99,15 @@ else
             'in the same path where the AnaSP-launcher is located.'])
     end
 end
+
 for FunNum = 1:length(FunctionList)
     try
-        functionNameNum = FunctionList(FunNum).name;
-        functionNameNum = functionNameNum(1:end-2);
+        if isdeployed
+            functionNameNum = FunctionList{FunNum};
+        else
+            functionNameNum = FunctionList(FunNum).name;
+            functionNameNum = functionNameNum(1:end-2);
+        end
         Value = feval(functionNameNum, Maski_Origj, Maski_Cometj, Maski_Tailj, Maski_Headj, Intensity_MinMax_StretchedOrig);
         Table.(functionNameNum){1,1} = Value;
     catch ME
