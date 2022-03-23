@@ -45,10 +45,15 @@ ImgShownStretched = app.comet_handles.Imgs_Stretched(:,:,1,IndImgShown);
 ImgShownOri = app.comet_handles.Imgs_Ori(:,:,1,IndImgShown);
 
 ROIStretched = ImgShownStretched(BB(1,1):BB(2,1),BB(2,2):BB(1,2));
-ROIori = ImgShownOri(BB(1,1):BB(2,1),BB(2,2):BB(1,2));
 if all(ROIStretched(:)==0) || all(ROIStretched(:)==255)
-    bool = 0;
-    errorString = {'No comet was found in the region.'};
+    answer = questdlg({'No comet was found in the region.';'Would you like to remove the selected segmentation?'},'Empty region','Yes','No','Yes');
+    if strcmp(answer,'Yes')
+        app.comet_handles.Imgs_Stretched(BB(1,1):BB(2,1),BB(2,2):BB(1,2),2,IndImgShown) = 0;
+        app.comet_handles.Imgs_Stretched(BB(1,1):BB(2,1),BB(2,2):BB(1,2),3,IndImgShown) = 0;
+        errorString = {'Annotation from empty region has been removed.'};
+    else
+        bool = 1;
+    end
     return
 end
 

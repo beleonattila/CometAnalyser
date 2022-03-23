@@ -25,32 +25,33 @@ function [bool, message] = trainSemanticSegmentationModel(path,userOptions)
 %
 % https://www.mathworks.com/help/vision/ref/deeplabv3pluslayers.html
 
+global progressDLG
 
 bool = 0;
 message = [];
 baseFolder = path;
-networkParamPath = fullfile('models','segmentation');
-networkParamFileName = 'Network_param.mat';
+% networkParamPath = fullfile('models','segmentation');
+% networkParamFileName = 'Network_param.mat';
 
-if ~exist(fullfile(baseFolder,'Images'),'dir') || ~exist(fullfile(baseFolder,'Masks'),'dir')
-    message = {'The selected folder does not contain annotated data.';...
-                'It does not contain the two required subfolders named ''Images'' and ''Masks''.'};
-    return
-end
-if exist(networkParamPath,'dir')
-    paramFile = dir(fullfile(networkParamPath,"*.mat"));
-    if ~any(strcmp({paramFile.name},networkParamFileName))
-        message = {'Missing network parameter file.';...
-            'Please network parameter file.';
-            'For more information read the User Manual.'};
-        return
-    end
-else
-    message = {'Missing folder structure.';...
-        ['Please check the existance of ',networkParamPath,' folder.'];
-        'For more information read the User Manual.'};
-    return
-end
+% if ~exist(fullfile(baseFolder,'Images'),'dir') || ~exist(fullfile(baseFolder,'Masks'),'dir')
+%     message = {'The selected folder does not contain annotated data.';...
+%                 'It does not contain the two required subfolders named ''Images'' and ''Masks''.'};
+%     return
+% end
+% if exist(networkParamPath,'dir')
+%     paramFile = dir(fullfile(networkParamPath,"*.mat"));
+%     if ~any(strcmp({paramFile.name},networkParamFileName))
+%         message = {'Missing network parameter file.';...
+%             'Please download network parameter file.';
+%             'For more information read the User Manual.'};
+%         return
+%     end
+% else
+%     message = {'Missing folder structure.';...
+%         ['Please check the existence of ',networkParamPath,' folder.'];
+%         'For more information read the User Manual.'};
+%     return
+% end
 imgDir = fullfile(baseFolder,'Images');
 labelDir = fullfile(baseFolder,'Masks');
 
@@ -70,6 +71,7 @@ if numel(imds.Files)<6
 end
 
 I = readimage(imds,1);
+originalImSize = size(I);
 figure, imshow(I)
 
 classes = [
@@ -108,11 +110,6 @@ ylabel('Frequency')
 [imdsTrain, imdsVal, imdsTest, pxdsTrain, pxdsVal, pxdsTest] = partitionCometData(imds,pxds);
 
 numTrainingImages = numel(imdsTrain.Files);
-% numTrainingImages = numel(imds.Files)
-
-% numValImages = numel(imdsVal.Files);
-% numValImages = numel(Vimds.Files)
-
 numTestingImages = numel(imdsTest.Files);
 
 % Specify the network image size. This is typically the same as the traing image sizes.
@@ -123,17 +120,21 @@ imageSize = [w, h, c];
 numClasses = numel(classes);
 
 % Create DeepLab v3+.
-%     lgraph = deeplabv3plusLayers(imageSize, numClasses, "resnet18");
-lgraph = loadPretrainedCometNetwrok(fullfile(networkParamPath,networkParamFileName));
+lgraph = deeplabv3plusLayers_custom(imageSize, numClasses, "resnet18");
+
+% Load pre-trained network
+% lgraph = loadPretrainedCometNetwrok(fullfile(networkParamPath,networkParamFileName));
 
 imageFreq = tbl.PixelCount ./ tbl.ImagePixelCount;
 imageFreq(isnan(imageFreq)) = min(imageFreq) * 0.00001;
 classWeights = median(imageFreq) ./ imageFreq;
 
-% pxLayer = pixelClassificationLayer('Name','labels','Classes',tbl.Name,'ClassWeights',classWeights);
-% lgraph = replaceLayer(lgraph,"classification",pxLayer);
+pxLayer = pixelClassificationLayer('Name','labels','Classes',tbl.Name,'ClassWeights',classWeights);
+lgraph = replaceLayer(lgraph,"classification",pxLayer);
 
 % Define validation data.
+
+
 dsVal = combine(imdsVal,pxdsVal);
 
 % Define training options. 
@@ -177,14 +178,13 @@ end
 
 if isdeployed
     warndlg('Plotting training progress is not supported in stand-alone version.')
-    helpdlg(options.Plots)
-    pause(2)
     options.Plots = 'none';
 end
 
+progressDLG.Counter = 0;
+progressDLG.figHandle = helpdlg('Training in progress. Please wait... [-]');
+
 dsTrain = combine(imdsTrain, pxdsTrain);
-helpdlg('combined')
-pause(2)
 xTrans = [-15 15];
 yTrans = [-15 15];
 rotVector = [-90, 90];
@@ -192,38 +192,45 @@ scaleVector = [0.8, 1.2];
 intensityThreshold = [0.7 1.5];
 dsTrain = transform(dsTrain, @(data)augmentImageAndLabel(data,xTrans,yTrans,rotVector,scaleVector,intensityThreshold));
 
-
-[net, ~] = trainNetwork(dsTrain,lgraph,options);
-
-idx = randi(numTestingImages);
-I = readimage(imdsTest,idx);
-C = semanticseg(I, net);
-
-B = labeloverlay(I,C,'Colormap',cmap,'Transparency',0.4);
-figure, imshow(B)
-pixelLabelColorbar(cmap, classes);
-
-expectedResult = readimage(pxdsTest,idx);
-actual = uint8(C);
-expected = uint8(expectedResult);
-imshowpair(actual, expected)
-
-iou = jaccard(C,expectedResult);
-table(classes,iou)
-
-pxdsResults = semanticseg(imdsTest,net, ...
-    'MiniBatchSize',1, ...
-    'WriteLocation',tempdir, ...
-    'Verbose',false);
-
-metrics = evaluateSemanticSegmentation(pxdsResults,pxdsTest,'Verbose',false);
-
-metrics.DataSetMetrics
-metrics.ClassMetrics
-
-% Check the writting permission in standAlone version!
-modelName = fullfile(baseFolder,[datestr(now,30),'_preTrainedNetwork_',num2str(metrics.DataSetMetrics.GlobalAccuracy),'.mat']);
-helpdlg(['Saving trained model at path: ', modelName], 'Save model')
-save(modelName,'net')
-helpdlg('Trained model is saved.', 'Train complete')
+try
+    [net, ~] = trainNetwork(dsTrain,lgraph,options);
+    if isvalid(progressDLG.figHandle)
+        close(progressDLG.figHandle)
+    end
+    idx = randi(numTestingImages);
+    I = readimage(imdsTest,idx);
+    C = semanticseg(I, net);
+    B = labeloverlay(I,C,'Colormap',cmap,'Transparency',0.4);
+    
+    figure, imshow(B)
+    pixelLabelColorbar(cmap, classes);
+    
+    expectedResult = readimage(pxdsTest,idx);
+    actual = uint8(C);
+    expected = uint8(expectedResult);
+    imshowpair(actual, expected)
+    
+    iou = jaccard(C,expectedResult);
+    table(classes,iou)
+    
+    pxdsResults = semanticseg(imdsTest,net, ...
+        'MiniBatchSize',1, ...
+        'WriteLocation',tempdir, ...
+        'Verbose',false);
+    
+    metrics = evaluateSemanticSegmentation(pxdsResults,pxdsTest,'Verbose',false);
+    
+    % metrics.DataSetMetrics
+    % metrics.ClassMetrics
+    
+    % Check the writting permission in standAlone version!
+    modelName = fullfile(baseFolder,[datestr(now,30),'_preTrainedNetwork_',num2str(metrics.DataSetMetrics.GlobalAccuracy),'.mat']);
+    helpdlg(['Saving trained model at path: ', modelName], 'Save model')
+    save(modelName,'net')
+    helpdlg('Trained model is saved.', 'Train complete')
+catch me
+    dlgHandle = msgbox(sprintf(me.message),'Training','error');
+    uiwait(dlgHandle)
+end
+clear('progressDLG')
 bool = 1;

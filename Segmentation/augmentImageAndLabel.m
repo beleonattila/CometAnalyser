@@ -15,6 +15,7 @@ function data = augmentImageAndLabel(data, xTrans, yTrans, rotVector, scaleVecto
 %   scaleVector         Vector with min and max values of scaling values
 %   intensityThreshold  Vector with min and max values of random intensity
 %                       scaling
+%   inputSize           Input size of the network
 %
 %
 % OUTPUT:
@@ -40,10 +41,9 @@ function data = augmentImageAndLabel(data, xTrans, yTrans, rotVector, scaleVecto
 % negligence or otherwise) arising in any way out of the use of this
 % software, even if advised of the possibility of such damage.
 
-
+global progressDLG
 
 for i = 1:size(data,1)
-    
     tform = randomAffine2d(...
         'XReflection',true,...
         'YReflection',true,...
@@ -82,5 +82,25 @@ for i = 1:size(data,1)
         randScaler = medianInt * (intensityThreshold(1) + rand * range(intensityThreshold));
         data{i,1} = data{i,1} + randScaler;
     end
-    
+end
+progressDLG.Counter = progressDLG.Counter + 1;
+
+switch mod(progressDLG.Counter,4)
+
+    case 0
+        message = '[-]';
+    case 1
+        message = '[\]';
+    case 2
+        message = '[|]';
+    case 3
+        message = '[/]';
+end
+
+if isvalid(progressDLG.figHandle)
+    progressDLG.figHandle.Children(3).Children.String = ['Training in progress. Please wait... ', message];
+    pause(.1)
+else
+    progressDLG.figHandle = helpdlg(['Training in progress. Please wait... ', message]);
+    pause(.1)
 end
