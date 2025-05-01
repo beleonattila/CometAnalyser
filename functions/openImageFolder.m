@@ -145,6 +145,7 @@ if ~isempty(PathInputFolder) && all(PathInputFolder~=0)
         app.comet_handles.ImgsNames = ImgsNames;
         app.comet_handles.IndImgShown = 1;
         app.comet_handles.PathInputFolderOriginal = PathInputFolder;
+        app.comet_handles.LoadImagesOngoing = 0;
         set(app.text_Num,'Text', ['Image: ' '1' '/' num2str(NumImages)]);
         set(app.text_Name,'Text', ['Image: ' char(app.comet_handles.dirList(ceil(1)).name)]);
         imshow(composeImage(app.comet_handles.Imgs_Stretched(:,:,:,app.comet_handles.IndImgShown)), [], 'Parent', app.axes1);
