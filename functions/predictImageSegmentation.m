@@ -1,215 +1,199 @@
-function [bool, message] = predictImageSegmentation(app,method)
+function [bool, message] = predictImageSegmentation(app, method)
 % AUTHOR: Attila Beleon (E-mail: beleonattila@gmail.com)
 % DATE: April 26, 2021
-% Updated: February 18, 2022
-% NAME: predictImageSegmentation (version 1.0)
+% Updated: May 01, 2026
+% NAME: predictImageSegmentation (version 2.0)
 %
-% Performing automatic segmentation by the selected pretrained network.
-%   This function modifies the app.comet_handles.Imgs_Streched at the
-%   predicted regions.
-%   Channel 2 - comet masks get id = 255
-%   Channel 3 - head masks get id = 255
+% Automatic segmentation using pre-trained U-Net with sliding window
+% inference, followed by morphological post-processing and watershed
+% splitting of touching comets.
+%
+% Post-processing reuses segmentComet and segmentHead for consistency
+% with the manual segmentation pipeline.
 %
 % INPUT:
-%   app                 Handles of the application.
-%   method              'single' for the shown image
-%                       'multi' for the whole dateset
-%                       NOTE: performed on images without manual
-%                       segmentation (without red and blue)
+%   app     App handles
+%   method  'single' — segment current image only
+%           'multi'  — segment all unannotated images
 %
 % OUTPUT:
-%   bool                [0 or 1] successor
-%   message             Error message of something goes wrong
-%
+%   bool    1 on success, 0 on failure
+%   message Cell array of status/error messages
 
-% Copyright © 2022 Filippo Piccinini and Attila Beleon.
-% Contacts: filippo.piccinini85@gmail.com and beleonattila@gmail.com
-% All rights reserved.
-% 
-% CometAnalyser and all related material is licensed
-% under the: 3-clause BSD License.
-%
-% This software and all related material is provided by the copyright
-% holders and contributors "as is" and any express or implied warranties,
-% including, but not limited to, the implied warranties of merchantability
-% and fitness for a particular purpose are disclaimed. In no event shall
-% <copyright holder> be liable for any direct, indirect, incidental,
-% special, exemplary, or consequential damages (including, but not limited
-% to, procurement of substitute goods or services; loss of use, data, or
-% profits; or business interruption) however caused and on any theory of
-% liability, whether in contract, strict liability, or tort (including
-% negligence or otherwise) arising in any way out of the use of this
-% software, even if advised of the possibility of such damage.
+bool    = 0;
+message = [];
 
-bool = 0;
+% -------------------------------------------------------------------------
+% Validate model path
+% -------------------------------------------------------------------------
 [folderName, ~, ext] = fileparts(app.comet_handles.segmentationOptions.modelPath);
-result = isfolder(folderName);
-if ~result || ~strcmp(ext,'.mat')
-    message = {'Invalid segmentation model. Please select a valid model, then try again!'};
+if ~isfolder(folderName) || ~strcmp(ext, '.mat')
+    message = {'Invalid segmentation model.'; ...
+               'Please select a valid .mat model file, then try again.'};
     return
 end
+
+% -------------------------------------------------------------------------
+% Load model
+% -------------------------------------------------------------------------
 try
-    message = {'Loading the model, please wait...'};
-    dlgHandle = msgbox(sprintf(message{:}),'Training','help');
+    dlgHandle = msgbox('Loading the model, please wait...', 'Loading', 'help');
+
+    % Memory check (Windows only)
     if ispc
-        sysMem = memory;
+        sysMem        = memory;
         modelFileInfo = dir(app.comet_handles.segmentationOptions.modelPath);
         if sysMem.MaxPossibleArrayBytes < modelFileInfo.bytes
-            message = {'Not enough memory to load the Pre-trained Neural Network for segmentation.'};
+            if ishandle(dlgHandle), close(dlgHandle); end
+            message = {'Not enough memory to load the segmentation model.'};
             return
         end
     end
-    load(app.comet_handles.segmentationOptions.modelPath);
-    if isempty(who('net'))
-        if ishandle(dlgHandle), close(dlgHandle), end
-        message = {'Invalid segmentation model. Please select a valid model, then try again!'};
-        dlgHandle = msgbox(sprintf(message{:}),'Training','help');
-        uiwait(dlgHandle)
-        [fileName, path] = uigetfile('Select a pre-trained model!');
-        if ischar(path)
-            app.comet_handles.segmentationOptions.modelPath = fullfile(path,fileName);
-            return
-        end
+
+    data = load(app.comet_handles.segmentationOptions.modelPath);
+
+    % Flexible network field detection — supports net, netFinal, netAvg
+    if isfield(data, 'net')
+        net = data.net;
+    elseif isfield(data, 'netFinal')
+        net = data.netFinal;
+    elseif isfield(data, 'netAvg')
+        net = data.netAvg;
+    else
+        if ishandle(dlgHandle), close(dlgHandle); end
+        message = {'No valid network found in model file.'; ...
+                   'Expected field: net, netFinal, or netAvg.'};
+        return
     end
+
+    % Load metadata saved during training
+    if ~isfield(data, 'classNames') || ~isfield(data, 'patchSize')
+        if ishandle(dlgHandle), close(dlgHandle); end
+        message = {'Model file is missing classNames or patchSize metadata.'; ...
+                   'Please retrain using the current pipeline.'};
+        return
+    end
+
+    classNames = data.classNames;
+    patchSize  = data.patchSize;
+
 catch me
-    if ishandle(dlgHandle), close(dlgHandle), end
-    dlgHandle = msgbox(sprintf(me.message),'Training','error');
-    uiwait(dlgHandle)
-    message = {'Invalid model. Please select a valid model in Segmentation Training Option menu, then try again!'};
+    if ishandle(dlgHandle), close(dlgHandle); end
+    message = {me.message; ''; ...
+               'Please select a valid model in Segmentation Options.'};
     return
 end
-if ishandle(dlgHandle), close(dlgHandle), end
 
-idx = zeros(app.comet_handles.NumImages,1);
+if ishandle(dlgHandle), close(dlgHandle); end
+
+% -------------------------------------------------------------------------
+% Detect execution environment
+% -------------------------------------------------------------------------
+useGPU = false;
+env = app.comet_handles.segmentationOptions.ExecutionEnvironment;
+if strcmp(env, 'auto') || strcmp(env, 'gpu') || strcmp(env, 'multi-gpu')
+    try
+        g = gpuDevice;
+        if g.DeviceSupported
+            useGPU = true;
+        end
+    catch
+        % No compatible GPU available — fall back to CPU silently
+    end
+end
+
+% -------------------------------------------------------------------------
+% Determine which images to segment
+% -------------------------------------------------------------------------
+idx = false(app.comet_handles.NumImages, 1);
+
 if strcmp(method, 'single')
-    if ~any(app.comet_handles.Imgs_Stretched(:,:,2,app.comet_handles.IndImgShown),'all')
-        idx(app.comet_handles.IndImgShown,1) = 1;
+    i = app.comet_handles.IndImgShown;
+    if ~any(app.comet_handles.Imgs_Stretched(:,:,2,i), 'all')
+        idx(i) = true;
     end
 elseif strcmp(method, 'multi')
-%     wb = waitbar(0,'Preparing images');
-    n = app.comet_handles.NumImages;
-    for j = 1:n
-        if ~any(app.comet_handles.Imgs_Stretched(:,:,2,j),'all')
-            idx(j,1) = 1;
-%             if ishandle(wb)
-%                 wb = waitbar(j/n,wb,'Preparing images');
-%             end
+    for j = 1:app.comet_handles.NumImages
+        if ~any(app.comet_handles.Imgs_Stretched(:,:,2,j), 'all')
+            idx(j) = true;
         end
     end
-%     if ishandle(wb), close(wb), end
 end
 
-
-idx = logical(idx);
 if ~any(idx)
     if strcmp(method, 'single')
-        message = {'The current image contains annotations: it will be not analysed'};
+        message = {'The current image already contains annotations.'; ...
+                   'Automatic segmentation only runs on unannotated images.'};
     else
-        message = {'There is no blank image to do segmentation.';...
-                    'Segmentation only works on images without annotation'};
+        message = {'No unannotated images found.'; ...
+                   'Automatic segmentation only runs on images without existing annotation.'};
     end
     return
 end
 
-% memoryRequirement = numel(app.comet_handles.Imgs_Stretched(:,:,1,idx))*5;
-env = app.comet_handles.segmentationOptions.ExecutionEnvironment;
-if strcmp(env,'gpu') || strcmp(env,'multi-gpu')
-    tGPU = gpuDeviceTable;
-    if ~isempty(tGPU)
-        indx = tGPU.DeviceAvailable == true;
-        if sum(indx) == 0
-            message = {'There is no GPU available.'};
-            warndlg(message,'Environment')
-        end
-    else
-        message = {'There is no GPU available.'};
-        warndlg(message,'Environment')
-    end
-end
+% -------------------------------------------------------------------------
+% Build post-processing params from app settings
+% -------------------------------------------------------------------------
+postParams.minObjectSize          = app.comet_handles.segmentationOptions.minObjectSize;
+postParams.closingRadius          = app.comet_handles.segmentationOptions.closingRadius;
+postParams.CometThAddFactor       = app.comet_handles.CometThAddFactor;
+postParams.CometDiskDilation      = app.comet_handles.CometSizeDiskDilation;
+postParams.HeadThAddFactor        = app.comet_handles.HeadThAddFactor;
+postParams.HeadDiskDilation       = app.comet_handles.HeadSizeDiskDilation;
+postParams.flag_ThresholdMode     = app.comet_handles.flag_ThresholdMode;
+postParams.flag_ThresholdHeadMode = app.comet_handles.flag_ThresholdHeadMode;
 
-inputSize = net.Layers(1).InputSize;
-OrigImageSize = size(app.comet_handles.Imgs_Stretched(:,:,1,1));
+% -------------------------------------------------------------------------
+% Segment images
+% -------------------------------------------------------------------------
+stride        = patchSize / 2;
+idx2          = find(idx);
+numIm2Segment = numel(idx2);
 
-wb = waitbar(0,'Segmentation in progress. Please wait...');
-numIm2Segmentation = sum(idx);
-idx2 = find(idx);
-for i = 1:sum(idx)
-    tempIm = app.comet_handles.Imgs_Stretched(:,:,1,idx2(i));
-    I = cat(3,tempIm,tempIm,tempIm);
-    clear('tempIm');
-    
-    imageSize = OrigImageSize;
-    padSize = zeros(1,2);
-    if any(inputSize(1:2) ~= imageSize(1:2))
-        if i == 1
-            warndlg('The image size in this project is not identical to the input size of the segmentation model. This can cause performance drop.');
-        end
-        imSizeDiff = inputSize(1:2) - imageSize(1:2);
-        
-        % If the project images are larger
-        if any(imSizeDiff<0)
-            [~,ImMinIdx] = min(imSizeDiff);
-            imScaler = [nan nan];
-            imScaler(ImMinIdx) = inputSize(ImMinIdx);
-            I = imresize(I,imScaler);
-            imageSize = size(I);
-            imSizeDiff = inputSize(1:2) - imageSize(1:2);
-        end
-        
-        % If the project images are smaller
-        
-        if imSizeDiff(1)
-            if imSizeDiff(1)>0
-                padSize(1) = imSizeDiff(1);
-            end
-        end
-        
-        if imSizeDiff(2)
-            if imSizeDiff(2)>0
-                padSize(2) = imSizeDiff(2);
-            end
-        end
-        
-        I = padarray(I,round(padSize./2),0,'both');
-        I = imresize(I,inputSize(1:2));
+wb = waitbar(0, 'Segmentation in progress. Please wait...');
+
+for i = 1:numIm2Segment
+    imgIdx = idx2(i);
+
+    try
+        % Load and normalize image to single [0,1]
+        I = im2single(app.comet_handles.Imgs_Stretched(:,:,1,imgIdx));
+
+        % U-Net sliding window prediction
+        C = semanticsegPatch(I, net, classNames, patchSize, stride, useGPU);
+        clear I
+
+        % Convert categorical to uint8 class indices
+        % Head=1, Tail=2, Background=3
+        C8 = uint8(C);
+        clear C
+
+        % Original uint8 image for watershed and segmentComet/segmentHead
+        Img = app.comet_handles.Imgs_Stretched(:,:,1,imgIdx);
+
+        % Post-processing: cleanup + watershed + per-object segmentation
+        [segmentedComet, segmentedHead] = postProcessSegmentation(C8, Img, postParams);
+        clear C8
+
+        % Write results to app
+        app.comet_handles.Imgs_Stretched(:,:,2,imgIdx) = segmentedComet;
+        app.comet_handles.Imgs_Stretched(:,:,3,imgIdx) = segmentedHead;
+
+    catch me
+        fprintf('[WARNING] Image %d segmentation failed: %s\n', imgIdx, me.message);
+        % Continue to next image rather than aborting entire batch
     end
-    
-    [C, ~, ~] = semanticseg(I, net);
-    clear('I')
-    C8 = uint8(C);
-    clear('C')
-    if any(padSize)
-        if padSize(1)
-            C8(1:round(padSize(1)./2),:,:) = [];
-            C8(end-round(padSize(1)./2):end,:,:) = [];
-        end
-        if padSize(2)
-            C8(:,1:round(padSize(2)./2),:) = [];
-            C8(:,end-round(padSize(2)./2):end,:) = [];
-        end
-    end
-    C8 = imresize(C8,OrigImageSize(1:2));
-    C8(C8 == 3) = 0;
-    BW = imbinarize(C8);
-    BW_fill = imfill(BW, 4, 'holes');
-    BW_open = bwareaopen(BW_fill,250,4);
-    se = strel('disk',20);
-    BW2 = imclose(BW_open,se);
-    C8(~BW2) = 0;
-    segmentedComet = uint8(BW2) * 255;
-    segmentedHead = C8;
-    segmentedHead(C8 == 1) = 255;
-    segmentedHead(segmentedHead~=255) = 0;
-    clear('C8')
-    
-    app.comet_handles.Imgs_Stretched(:,:,2,idx2(i)) = segmentedComet;
-    app.comet_handles.Imgs_Stretched(:,:,3,idx2(i)) = segmentedHead;
+
     if ishandle(wb)
-        waitbar(i/numIm2Segmentation,wb,sprintf('Segmentation in progress. Please wait...\n %d / %d',[i,numIm2Segmentation]))
+        waitbar(i/numIm2Segment, wb, ...
+            sprintf('Segmentation in progress. Please wait...\n%d / %d', ...
+                    i, numIm2Segment));
     end
 end
-if ishandle(wb), close(wb), end
-message = {'Segmentation done.';...
-            '';...
-            [num2str(sum(idx)),' image(s) have been segmented.']};
+
+if ishandle(wb), close(wb); end
+
+message = {'Segmentation complete.'; ''; ...
+           [num2str(numIm2Segment), ' image(s) processed.']};
 bool = 1;
+end

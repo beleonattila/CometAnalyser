@@ -1,236 +1,362 @@
-function [bool, message] = trainSemanticSegmentationModel(path,userOptions)
+function [bool, message, savedModelPath] = trainSemanticSegmentationModel(patchPath, preTrainedModelPath, outputPath, userOptions)
+
 % AUTHOR: Attila Beleon (E-mail: beleonattila@gmail.com)
-% DATE: April 14, 2021
-% Updated: March 14, 2022
-% NAME: trainSemanticSegmentationModel (version 1.0)
+% DATE: May 01, 2026
+% NAME: trainSemanticSegmentationModel (version 2.0)
+%
+% User-facing fine-tuning pipeline for CometAnalyser U-Net segmentation.
+% Fine-tunes a pre-trained model on user-provided data.
+%
+% Expects pre-processed patch dataset (run preprocessPatchDataset first).
+% Uses existing partitionCometData for train/val/test split.
+% All hyperparameters passed via userOptions struct from the app UI.
 %
 % INPUT:
-% 	path                Path of annotadet dataset folder
-%   options             Training options parameter
-%                       (MaxEpoch, LearnRater, etc...)
-%
+%   patchPath           Path to patch dataset folder (Images/ + Masks/)
+%   preTrainedModelPath Path to pre-trained .mat model file
+%   outputPath          Path where fine-tuned model will be saved
+%   userOptions         Struct with fields:
+%                           .MaxEpoch               number of epochs
+%                           .MiniBatchSize          e.g. '4'
+%                           .ValidationPatience     e.g. '6'
+%                           .ExecutionEnvironment   'auto','cpu','gpu'
+%                           .InitialLearnRate       e.g. '1e-5'
+%                       (L2Regularization and ShuffleData are fixed
+%                        internally to match the pre-trained model)
 %
 % OUTPUT:
-%   Pre-trained model saved to the input path folder.
+%   bool                1 on success, 0 on failure
+%   message             Error message cell array if failed, empty otherwise
 %
-% The function builds a 'Resnet18' model, then train it with presegmented
-% images from input 'path' folder.
-%
-% REFERENCE: [1] Chen, L., Y. Zhu, G. Papandreou, F. Schroff, and H. Adam.
-% "Encoder-Decoder with Atrous Separable Convolution for Semantic Image
-% Segmentation." Computer Vision — ECCV 2018, 833-851. Munic, Germany:
-% ECCV, 2018.
-%
-% ### deeplabv3plusLayers ###
-%
-% https://www.mathworks.com/help/vision/ref/deeplabv3pluslayers.html
+% USAGE:
+%   opts.MaxEpoch            = '20';
+%   opts.MiniBatchSize       = '4';
+%   opts.ValidationPatience  = '6';
+%   opts.ExecutionEnvironment = 'auto';
+%   [bool, msg] = trainSemanticSegmentationModel(
+%       'data/patches', 'models/pretrained.mat', 'models/', opts);
 
 global progressDLG
 
-bool = 0;
+bool    = 0;
 message = [];
-baseFolder = path;
-% networkParamPath = fullfile('models','segmentation');
-% networkParamFileName = 'Network_param.mat';
 
-% if ~exist(fullfile(baseFolder,'Images'),'dir') || ~exist(fullfile(baseFolder,'Masks'),'dir')
-%     message = {'The selected folder does not contain annotated data.';...
-%                 'It does not contain the two required subfolders named ''Images'' and ''Masks''.'};
-%     return
-% end
-% if exist(networkParamPath,'dir')
-%     paramFile = dir(fullfile(networkParamPath,"*.mat"));
-%     if ~any(strcmp({paramFile.name},networkParamFileName))
-%         message = {'Missing network parameter file.';...
-%             'Please download network parameter file.';
-%             'For more information read the User Manual.'};
-%         return
-%     end
-% else
-%     message = {'Missing folder structure.';...
-%         ['Please check the existence of ',networkParamPath,' folder.'];
-%         'For more information read the User Manual.'};
-%     return
-% end
-imgDir = fullfile(baseFolder,'Images');
-labelDir = fullfile(baseFolder,'Masks');
+classNames = ["Head", "Tail", "Background"];
+labelIDs   = [255 127 0];
+numClasses = numel(classNames);
+% Fixed: must match the pre-trained model's architecture and patch pipeline.
+patchSize  = [512 512];
+cmap       = [1 0 0; 0 0 1; 0 0 0];
 
-if isempty(dir(fullfile(imgDir,'*.png'))) || isempty(dir(fullfile(labelDir,'*.png')))
-    message = {'The selected folder does not contain annotated data.';...
-                'Image files are missing from subfolder';...
-                '(regquired extension is PNG)'};
+% -------------------------------------------------------------------------
+% Validate patch folder
+% -------------------------------------------------------------------------
+imgDir = fullfile(patchPath, 'Images');
+mskDir = fullfile(patchPath, 'Masks');
+
+if ~exist(imgDir, 'dir') || ~exist(mskDir, 'dir')
+    message = {'Patch folder structure invalid.'; ...
+               'Expected Images/ and Masks/ subfolders.'; ...
+               'Please run preprocessPatchDataset first.'};
     return
 end
 
-imds = imageDatastore(imgDir);
-if numel(imds.Files)<6
-    message = {'Not enough training sample.';...
-                'Please annotate more images for the sake of reliable result';...
-                '(minimum requirement is 6 images with labels)'};
+imgFiles = dir(fullfile(imgDir, '*.tif'));
+mskFiles = dir(fullfile(mskDir, '*.png'));
+
+if isempty(imgFiles)
+    message = {'No .tif patch files found in Images/.'; ...
+               'Please run preprocessPatchDataset first.'};
     return
 end
 
-I = readimage(imds,1);
-originalImSize = size(I);
-figure, imshow(I)
+if numel(imgFiles) < 6
+    message = {'Not enough patches for training (minimum 6).'; ...
+               'Please annotate more images and re-run preprocessPatchDataset.'};
+    return
+end
 
-classes = [
-    "Head"
-    "Tail"
-    "Backgroung"
-    ];
+if numel(imgFiles) ~= numel(mskFiles)
+    message = {sprintf('Image/mask count mismatch: %d images, %d masks.', ...
+                numel(imgFiles), numel(mskFiles))};
+    return
+end
 
-labelIDs = {255; 127; 0};
+% -------------------------------------------------------------------------
+% Validate pre-trained model
+% -------------------------------------------------------------------------
+if ~exist(preTrainedModelPath, 'file')
+    message = {'Pre-trained model file not found.'; ...
+               ['Path: ', preTrainedModelPath]};
+    return
+end
 
-pxds = pixelLabelDatastore(labelDir,classes,labelIDs);
+[~, ~, ext] = fileparts(preTrainedModelPath);
+if ~strcmp(ext, '.mat')
+    message = {'Invalid model file. Expected a .mat file.'};
+    return
+end
 
-C = readimage(pxds,1);
+% -------------------------------------------------------------------------
+% Load pre-trained model
+% -------------------------------------------------------------------------
+try
+    data = load(preTrainedModelPath);
+    if isfield(data, 'net')
+        net = data.net;
+    elseif isfield(data, 'netFinal')
+        net = data.netFinal;
+    elseif isfield(data, 'netAvg')
+        net = data.netAvg;
+    else
+        message = {'No valid network found in model file.'; ...
+                   'Expected field: net, netFinal, or netAvg.'};
+        return
+    end
+    fprintf('Pre-trained model loaded: %s\n', preTrainedModelPath);
+catch me
+    message = {'Failed to load pre-trained model.'; me.message};
+    return
+end
 
-cmap = [
-    1 0 0   % head
-    0 0 1   % tail
-    0 0 0   % background
-    ];
+% -------------------------------------------------------------------------
+% Build datastores
+% -------------------------------------------------------------------------
+imds = imageDatastore(imgDir, ...
+    'FileExtensions', '.tif', ...
+    'ReadFcn',        @readPatchImage);
 
+pxds = pixelLabelDatastore(mskDir, classNames, labelIDs);
 
-B = labeloverlay(I,C,'ColorMap',cmap);
-figure, imshow(B)
-pixelLabelColorbar(cmap,classes);
+% -------------------------------------------------------------------------
+% Visualize class distribution
+% -------------------------------------------------------------------------
+tbl       = countEachLabel(pxds);
+frequency = tbl.PixelCount / sum(tbl.PixelCount);
 
-tbl = countEachLabel(pxds);
-
-frequency = tbl.PixelCount/sum(tbl.PixelCount);
-
-bar(1:numel(classes),frequency)
-xticks(1:numel(classes)) 
+figure('Name', 'Class Distribution')
+bar(1:numClasses, frequency)
+xticks(1:numClasses)
 xticklabels(tbl.Name)
 xtickangle(45)
-ylabel('Frequency')
+ylabel('Pixel Frequency')
+title('Class distribution in patch dataset')
 
-[imdsTrain, imdsVal, imdsTest, pxdsTrain, pxdsVal, pxdsTest] = partitionCometData(imds,pxds);
+fprintf('Class frequencies:\n')
+for i = 1:numClasses
+    fprintf('  %-12s %.4f\n', classNames(i), frequency(i));
+end
+
+% -------------------------------------------------------------------------
+% Verify patch dimensions
+% -------------------------------------------------------------------------
+I = readimage(imds, 1);
+[h, w, ~] = size(I);
+% Fixed: must match the pre-trained model architecture.
+encoderDepth = 4;
+reqDiv = 2^encoderDepth;
+
+if mod(h, reqDiv) ~= 0 || mod(w, reqDiv) ~= 0
+    message = {sprintf('Patch dimensions %dx%d not divisible by %d.', h, w, reqDiv); ...
+               'Please re-run preprocessPatchDataset with compatible patch size.'};
+    return
+end
+
+imageSize = [h w];
+fprintf('Patch size confirmed: %dx%d\n', h, w);
+
+% -------------------------------------------------------------------------
+% Train/val/test split using existing partitionCometData
+% -------------------------------------------------------------------------
+[imdsTrain, imdsVal, imdsTest, pxdsTrain, pxdsVal, pxdsTest] = ...
+    partitionCometData(imds, pxds);
 
 numTrainingImages = numel(imdsTrain.Files);
-numTestingImages = numel(imdsTest.Files);
+numTestingImages  = numel(imdsTest.Files);
 
-% Specify the network image size. This is typically the same as the traing image sizes.
-[w, h, c] = size(I);
-imageSize = [w, h, c];
+fprintf('Split — Train: %d  Val: %d  Test: %d\n', ...
+    numTrainingImages, numel(imdsVal.Files), numTestingImages);
 
-% Specify the number of classes.
-numClasses = numel(classes);
+% -------------------------------------------------------------------------
+% Loss function
+% -------------------------------------------------------------------------
+% Fixed: matches expert training loss balance; changing risks destabilizing fine-tuning.
+lossFunc = @(Y, T) combinedLoss(Y, T, 0.7, 0.3);
 
-% Create DeepLab v3+.
-lgraph = deeplabv3plusLayers_custom(imageSize, numClasses, "resnet18");
+% -------------------------------------------------------------------------
+% Augmentation parameters — fixed to match pre-trained model training conditions.
+% Changing these shifts the augmentation distribution from what the backbone
+% features were learned on, risking instability or undoing learned invariances.
+% -------------------------------------------------------------------------
+augParams.xTrans           = [-30 30];
+augParams.yTrans           = [-30 30];
+augParams.rotVector        = [-90 90];
+augParams.scaleVector      = [0.8 1.2];
+augParams.intensityRange   = [0.7 1.5];
+augParams.gammaRange       = [0.7 1.3];
+augParams.maxNoiseStd      = 0.02;
+augParams.maxBlurSigma     = 1.5;
+augParams.vignetteStrength = 0.3;
+augParams.doFlip           = true;
 
-% Load pre-trained network
-% lgraph = loadPretrainedCometNetwrok(fullfile(networkParamPath,networkParamFileName));
-
-imageFreq = tbl.PixelCount ./ tbl.ImagePixelCount;
-imageFreq(isnan(imageFreq)) = min(imageFreq) * 0.00001;
-classWeights = median(imageFreq) ./ imageFreq;
-
-pxLayer = pixelClassificationLayer('Name','labels','Classes',tbl.Name,'ClassWeights',classWeights);
-lgraph = replaceLayer(lgraph,"classification",pxLayer);
-
-% Define validation data.
-
-
-dsVal = combine(imdsVal,pxdsVal);
-
-% Define training options. 
-if isempty(userOptions)
-    options = trainingOptions('sgdm', ...
-    'LearnRateSchedule','piecewise',...
-    'LearnRateDropPeriod',8,...
-    'LearnRateDropFactor',0.5,...
-    'Momentum',0.9, ...
-    'InitialLearnRate',1e-3, ...
-    'L2Regularization',0.005, ...
-    'ValidationData',dsVal,...
-    'MaxEpochs',5, ...  
-    'MiniBatchSize',1, ...
-    'Shuffle','every-epoch', ...
-    'CheckpointPath', tempdir, ...
-    'VerboseFrequency',2,...
-    'ExecutionEnvironment','cpu',...
-    'Plots','training-progress',...
-    'ValidationFrequency', numTrainingImages,...
-    'ValidationPatience', 4);
-else
-    options = trainingOptions('sgdm', ...
-    'LearnRateSchedule','piecewise',...
-    'LearnRateDropPeriod',str2double(userOptions.LearnRateDropPeriod),...
-    'LearnRateDropFactor',str2double(userOptions.LearnRateDropFactor),...
-    'Momentum',str2double(userOptions.Momentum), ...
-    'InitialLearnRate',str2double(userOptions.InitialLearnRate), ...
-    'L2Regularization',str2double(userOptions.L2Regularization), ...
-    'ValidationData',dsVal,...
-    'MaxEpochs',str2double(userOptions.MaxEpoch), ...  
-    'MiniBatchSize',str2double(userOptions.MiniBatchSize), ...
-    'Shuffle',userOptions.ShuffleData, ...
-    'CheckpointPath', tempdir, ...
-    'VerboseFrequency',2,...
-    'ExecutionEnvironment',userOptions.ExecutionEnvironment,...
-    'Plots',userOptions.Plot,...
-    'ValidationFrequency', numTrainingImages,...
-    'ValidationPatience', str2double(userOptions.ValidationPatience));
-end
-
-if isdeployed
-    warndlg('Plotting training progress is not supported in stand-alone version.')
-    options.Plots = 'none';
-end
-
-progressDLG.Counter = 0;
-progressDLG.figHandle = helpdlg('Training in progress. Please wait... [-]');
-
+% -------------------------------------------------------------------------
+% Build datastores
+% -------------------------------------------------------------------------
 dsTrain = combine(imdsTrain, pxdsTrain);
-xTrans = [-15 15];
-yTrans = [-15 15];
-rotVector = [-90, 90];
-scaleVector = [0.8, 1.2];
-intensityThreshold = [0.7 1.5];
-dsTrain = transform(dsTrain, @(data)augmentImageAndLabel(data,xTrans,yTrans,rotVector,scaleVector,intensityThreshold));
+dsTrain = transform(dsTrain, @(d) augmentCometImage(d, augParams));
 
+dsVal = combine(imdsVal, pxdsVal);
+dsVal = transform(dsVal, @(d) { ...
+    reshape(single(d{1}), size(d{1},1), size(d{1},2), 1), ...
+    d{2}});
+
+% -------------------------------------------------------------------------
+% Training options from userOptions
+% -------------------------------------------------------------------------
+iterationsPerEpoch = max(1, floor(numTrainingImages / str2double(userOptions.MiniBatchSize)));
+
+schedule = {warmupLearnRate(NumSteps=3, FrequencyUnit="epoch"), ...
+            piecewiseLearnRate(DropFactor=0.5, ...
+                               Period=50, ...
+                               FrequencyUnit="iteration")};
+
+% InitialLearnRate and L2Regularization are fixed: lower LR preserves pre-trained
+% features; gradient threshold and regularization match expert training conditions.
+if isdeployed
+    plotsOpt = 'none';
+else
+    plotsOpt = 'training-progress';
+end
+
+options = trainingOptions('adam', ...
+    LearnRateSchedule     = schedule, ...
+    InitialLearnRate      = str2double(userOptions.InitialLearnRate), ...
+    L2Regularization      = 1e-4, ...
+    GradientThreshold     = 1.0, ...
+    ValidationData        = dsVal, ...
+    MaxEpochs             = str2double(userOptions.MaxEpoch), ...
+    MiniBatchSize         = str2double(userOptions.MiniBatchSize), ...
+    Shuffle               = 'every-epoch', ...
+    CheckpointPath        = tempdir, ...
+    VerboseFrequency      = 10, ...
+    ExecutionEnvironment  = userOptions.ExecutionEnvironment, ...
+    Plots                 = plotsOpt, ...
+    Verbose               = true, ...
+    ValidationFrequency   = iterationsPerEpoch, ...
+    ValidationPatience    = str2double(userOptions.ValidationPatience));
+
+% -------------------------------------------------------------------------
+% Progress dialog
+% -------------------------------------------------------------------------
+progressDLG.Counter   = 0;
+progressDLG.figHandle = helpdlg('Fine-tuning in progress. Please wait...', 'Training');
+
+% -------------------------------------------------------------------------
+% Fine-tune
+% -------------------------------------------------------------------------
 try
-    [net, ~] = trainNetwork(dsTrain,lgraph,options);
+    [net, ~] = trainnet(dsTrain, net, lossFunc, options);
+
     if isvalid(progressDLG.figHandle)
         close(progressDLG.figHandle)
     end
-    idx = randi(numTestingImages);
-    I = readimage(imdsTest,idx);
-    C = semanticseg(I, net);
-    B = labeloverlay(I,C,'Colormap',cmap,'Transparency',0.4);
+
+    % --- Evaluate on test set ---
+    fprintf('Evaluating on test set...\n');
+    stride  = patchSize / 2;
+    numTest = numel(imdsTest.Files);
+    iouAll  = zeros(numTest, numClasses);
+
+    for i = 1:numTest
+        Itest      = readimage(imdsTest, i);
+        gtMask     = readimage(pxdsTest, i);
+        predMask   = semanticsegPatch(Itest, net, classNames, patchSize, stride);
+        iouAll(i,:) = jaccard(predMask, gtMask)';
+    end
+
+    testIoU = mean(iouAll, 1, 'omitnan');
+    fprintf('Test IoU — Head: %.3f  Tail: %.3f  Background: %.3f  Mean: %.3f\n', ...
+        testIoU(1), testIoU(2), testIoU(3), mean(testIoU));
+
+    % --- Visual check on random test sample ---
+    idx = randi(numTest);
+    I   = readimage(imdsTest, idx);
+    C   = semanticsegPatch(I, net, classNames, patchSize, stride);
+    B   = labeloverlay(I, C, 'Colormap', cmap, 'Transparency', 0.4);
+
+    figure('Name', 'Fine-tuned model — test sample')
+    imshow(B)
+    pixelLabelColorbar(cmap, classNames)
+    title(sprintf('Test sample — Mean IoU: %.3f', mean(testIoU)))
+
+    % --- Save model ---
+    if ~exist(outputPath, 'dir'), mkdir(outputPath); end
+    timestamp  = char(datetime('now', 'Format', 'yyyyMMdd_HHmmss'));
+    modelName  = fullfile(outputPath, ...
+        [timestamp, '_userModel_mIoU', sprintf('%.3f', mean(testIoU)), '.mat']);
+
+    trainingParams.patchSize             = patchSize;
+    trainingParams.encoderDepth          = encoderDepth;
+    trainingParams.initialLR             = str2double(userOptions.InitialLearnRate);
+    trainingParams.maxEpochs             = str2double(userOptions.MaxEpoch);
+    trainingParams.preTrainedModelPath   = preTrainedModelPath;
+
+    save(modelName, 'net', 'classNames', 'imageSize', ...
+         'patchSize', 'testIoU', 'trainingParams')
     
-    figure, imshow(B)
-    pixelLabelColorbar(cmap, classes);
+    savedModelPath = modelName;
     
-    expectedResult = readimage(pxdsTest,idx);
-    actual = uint8(C);
-    expected = uint8(expectedResult);
-    imshowpair(actual, expected)
-    
-    iou = jaccard(C,expectedResult);
-    table(classes,iou)
-    
-    pxdsResults = semanticseg(imdsTest,net, ...
-        'MiniBatchSize',1, ...
-        'WriteLocation',tempdir, ...
-        'Verbose',false);
-    
-    metrics = evaluateSemanticSegmentation(pxdsResults,pxdsTest,'Verbose',false);
-    
-    % metrics.DataSetMetrics
-    % metrics.ClassMetrics
-    
-    % Check the writting permission in standAlone version!
-    modelName = fullfile(baseFolder,[datestr(now,30),'_preTrainedNetwork_',num2str(metrics.DataSetMetrics.GlobalAccuracy),'.mat']);
-    helpdlg(['Saving trained model at path: ', modelName], 'Save model')
-    save(modelName,'net')
-    helpdlg('Trained model is saved.', 'Train complete')
+    helpdlg(['Model saved: ', modelName], 'Training complete')
+    message = {'Fine-tuning complete.'; ''; ...
+               ['Model saved to: ', modelName]};
+
 catch me
-    dlgHandle = msgbox(sprintf(me.message),'Training','error');
+    if isvalid(progressDLG.figHandle)
+        close(progressDLG.figHandle)
+    end
+    dlgHandle = msgbox(me.message, 'Training error', 'error');
     uiwait(dlgHandle)
+    message = {me.message};
+    clear progressDLG
+    return
 end
-clear('progressDLG')
+
+clear progressDLG
 bool = 1;
+end
+
+% =========================================================================
+% LOCAL FUNCTIONS
+% =========================================================================
+
+function img = readPatchImage(filename)
+img = imread(filename);
+img = single(img);
+if max(img(:)) > 1
+    img = img / 255;
+end
+img = reshape(img, size(img,1), size(img,2), 1);
+end
+
+% -------------------------------------------------------------------------
+function loss = combinedLoss(Y, T, dw, cw)
+epsilon = 1e-6;
+Ys = stripdims(Y);
+Ts = stripdims(T);
+
+intersection = sum(Ys .* Ts, [1 2]);
+denominator  = sum(Ys, [1 2]) + sum(Ts, [1 2]);
+dicePerClass = 1 - (2 * intersection + epsilon) ./ (denominator + epsilon);
+diceLossVal  = mean(dicePerClass, 'all');
+
+if ndims(Ys) == 4
+    dataFormat = 'SSCB';
+else
+    dataFormat = 'SSC';
+end
+
+ceSum  = crossentropy(Ys, Ts, 'DataFormat', dataFormat, 'Reduction', 'sum');
+ceLoss = ceSum / (size(Ys,1) * size(Ys,2) * max(1, size(Ys,4)));
+
+loss = dw * diceLossVal + cw * ceLoss;
+end
