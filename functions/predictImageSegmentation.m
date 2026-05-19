@@ -149,6 +149,7 @@ postParams.flag_ThresholdHeadMode = app.comet_handles.flag_ThresholdHeadMode;
 stride        = patchSize / 2;
 idx2          = find(idx);
 numIm2Segment = numel(idx2);
+failedImages  = [];
 
 wb = waitbar(0, 'Segmentation in progress. Please wait...');
 
@@ -179,9 +180,8 @@ for i = 1:numIm2Segment
         app.comet_handles.Imgs_Stretched(:,:,2,imgIdx) = segmentedComet;
         app.comet_handles.Imgs_Stretched(:,:,3,imgIdx) = segmentedHead;
 
-    catch me
-        fprintf('[WARNING] Image %d segmentation failed: %s\n', imgIdx, me.message);
-        % Continue to next image rather than aborting entire batch
+    catch
+        failedImages(end+1) = imgIdx;
     end
 
     if ishandle(wb)
@@ -195,5 +195,10 @@ if ishandle(wb), close(wb); end
 
 message = {'Segmentation complete.'; ''; ...
            [num2str(numIm2Segment), ' image(s) processed.']};
+if ~isempty(failedImages)
+    failedList   = strjoin(arrayfun(@num2str, failedImages, 'UniformOutput', false), ', ');
+    message{end+1} = '';
+    message{end+1} = ['WARNING: ' num2str(numel(failedImages)) ' image(s) failed (index): ' failedList];
+end
 bool = 1;
 end

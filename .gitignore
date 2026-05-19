@@ -45,3 +45,6 @@ resources/
 # Deployed app
 StandaloneCometAnalyser/
 *.prj
+
+# Helper file
+CometAnalyser_GUI_APP.mlapp.txt

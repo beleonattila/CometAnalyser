@@ -38,8 +38,9 @@ function [bool, message, savedModelPath] = trainSemanticSegmentationModel(patchP
 
 global progressDLG
 
-bool    = 0;
-message = [];
+bool          = 0;
+message       = [];
+savedModelPath = '';
 
 classNames = ["Head", "Tail", "Background"];
 labelIDs   = [255 127 0];

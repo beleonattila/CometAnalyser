@@ -18,7 +18,7 @@ function [segmentedComet, segmentedHead] = postProcessSegmentation(C8, Img, para
 %               1 = Head, 2 = Tail, 3 = Background
 %   Img     uint8 [H x W] original grayscale image
 %   params  Struct with fields (all optional, defaults shown):
-%               .minObjectSize          250
+%               .minObjectSize          100
 %               .closingRadius          20
 %               .CometThAddFactor       0
 %               .CometDiskDilation      0
@@ -34,7 +34,7 @@ function [segmentedComet, segmentedHead] = postProcessSegmentation(C8, Img, para
 % -------------------------------------------------------------------------
 % Parse parameters with defaults
 % -------------------------------------------------------------------------
-minObjectSize  = getParam(params, 'minObjectSize',          250);
+minObjectSize  = getParam(params, 'minObjectSize',          100);
 closingRadius  = getParam(params, 'closingRadius',          20);
 CometThAdd     = getParam(params, 'CometThAddFactor',       0);
 CometDiskDil   = getParam(params, 'CometDiskDilation',      0);

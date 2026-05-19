@@ -1,30 +1,20 @@
 function [bool, message] = autoSegmentClassical(app, method)
 % AUTHOR: Attila Beleon
 % DATE: May 01, 2026
-% NAME: autoSegmentClassical (version 1.0)
+% Updated: May 2026
+% NAME: autoSegmentClassical (version 1.1)
 %
 % Classical automatic segmentation pipeline — no deep learning required.
 %
 % Pipeline:
-%   1. Threshold full image using user-defined params (Otsu/Triangle/avg)
-%   2. Watershed to separate touching blobs
-%   3. Filter blobs by minimum head size → candidate head centroids
-%   4. For each centroid, extract adaptive ROI and run segmentComet()
-%      If mask touches ROI border → expand ROI and retry
-%   5. Run segmentHead() on each accepted comet mask
-%   6. Write results to Imgs_Stretched
-%
-% Adaptive ROI size is computed from average manually segmented object size.
-% All threshold and dilation params come from existing app settings.
-%
-% INPUT:
-%   app     App handles
-%   method  'single' — segment current image only
-%           'multi'  — segment all unannotated images
-%
-% OUTPUT:
-%   bool    1 on success, 0 on failure
-%   message Cell array of status/error messages
+%   1. Threshold full image using user-defined params
+%   2. bwlabel to find candidate objects
+%   3. Compute adaptive ROI size from current image object distribution
+%   4. Filter by minimum object size
+%   5. For each centroid, extract adaptive ROI and run segmentComet()
+%      If mask touches ROI border → expand ROI × 1.5 and retry
+%   6. Run segmentHead() on each accepted comet mask
+%   7. Write results to Imgs_Stretched
 
 bool    = 0;
 message = [];
@@ -58,39 +48,37 @@ if ~any(idx)
 end
 
 % -------------------------------------------------------------------------
-% Compute adaptive ROI size from manually segmented objects
-% -------------------------------------------------------------------------
-baseROIsize = computeAdaptiveROISize(app);
-
-% -------------------------------------------------------------------------
 % Read segmentation params from app settings
 % -------------------------------------------------------------------------
-thMode      = app.comet_handles.flag_ThresholdMode;
-thHeadMode  = app.comet_handles.flag_ThresholdHeadMode;
-CometThAdd  = app.comet_handles.CometThAddFactor;
-CometDiskDil= app.comet_handles.CometSizeDiskDilation;
-HeadThAdd   = app.comet_handles.HeadThAddFactor;
-HeadDiskDil = app.comet_handles.HeadSizeDiskDilation;
-
-% Minimum head size in pixels — filters noise from watershed output
-minHeadSize = app.comet_handles.segmentationOptions.minObjectSize;
+thMode       = app.comet_handles.flag_ThresholdMode;
+thHeadMode   = app.comet_handles.flag_ThresholdHeadMode;
+CometThAdd   = app.comet_handles.CometThAddFactor;
+CometDiskDil = app.comet_handles.CometSizeDiskDilation;
+HeadThAdd    = app.comet_handles.HeadThAddFactor;
+HeadDiskDil  = app.comet_handles.HeadSizeDiskDilation;
+minObjectSize = app.comet_handles.segmentationOptions.minObjectSize;
 
 % -------------------------------------------------------------------------
 % Segment images
 % -------------------------------------------------------------------------
 idx2          = find(idx);
 numIm2Segment = numel(idx2);
+failedImages  = [];
 wb = waitbar(0, 'Classical segmentation in progress. Please wait...');
+
 for i = 1:numIm2Segment
     imgIdx = idx2(i);
 
     try
-        % Get original and filtered image
+        % Load and filter image
         Img         = app.comet_handles.Imgs_Stretched(:,:,1,imgIdx);
         ImgFiltered = medfilt2(Img, [5 5], 'symmetric');
         ImgFiltered = imgaussfilt(ImgFiltered, 1);
 
-        % --- Step 1: Threshold full image to find candidate objects ---
+        H_img = size(Img, 1);
+        W_img = size(Img, 2);
+
+        % --- Step 1: Threshold full image ---
         ImgFlat = ImgFiltered(:);
 
         if thMode == 1
@@ -107,11 +95,10 @@ for i = 1:numIm2Segment
             thresh = (thOtsu + thTri) / 2;
         end
 
-        BinThresh = thresh * 255 + HeadThAdd;
+        BinThresh = thresh * 255 + CometThAdd;
         BinThresh = max(0, min(255, BinThresh));
         thresh    = BinThresh / 255;
-
-        BWfull = imbinarize(ImgFiltered, thresh);
+        BWfull    = imbinarize(ImgFiltered, thresh);
 
         % --- Step 2: Label connected objects ---
         [labeled, numBlobs] = bwlabel(BWfull, 4);
@@ -120,87 +107,107 @@ for i = 1:numIm2Segment
             continue
         end
 
-        props    = regionprops(labeled, 'Area', 'Centroid');
+        % --- Step 3: Compute adaptive ROI size from this image ---
+        % Use blob size distribution — median is robust to merged touching comets
+        % Get oriented bounding box from blob properties
+        props = regionprops(labeled, 'Area', 'Centroid', ...
+                    'MajorAxisLength', 'MinorAxisLength', 'Orientation');
+        
         areas    = [props.Area];
-        validIdx = find(areas >= minHeadSize);
+
+        % Filter to valid blobs only (above minimum size)
+        validMask = areas >= minObjectSize;
+        validIdx  = find(validMask);
 
         if isempty(validIdx)
             continue
-
         end
 
-        % --- Step 3-4: Per-object adaptive ROI segmentation ---
-        H_img = size(Img, 1);
-        W_img = size(Img, 2);
+        validAreas = areas(validMask);
 
+        % Median equivalent diameter → base ROI with 50% padding
+        medianArea    = median(validAreas);
+        medianDiam    = 2 * sqrt(medianArea / pi);
+        baseROIsize   = round(medianDiam * 1.5);
+
+        % Minimum ROI: must be at least 3× the side length of the
+        % smallest valid object — ensures the smallest comet fits
+        minObjSide    = sqrt(min(validAreas));
+        minROIsize    = round(minObjSide * 3);
+
+        % Clamp: minROIsize ≤ baseROIsize ≤ half the image short side
+        maxROIsize    = round(min(H_img, W_img) * 0.75);
+        baseROIsize   = max(minROIsize, min(baseROIsize, maxROIsize));
+
+
+        % --- Step 4-5: Per-object adaptive ROI segmentation ---
         segmentedComet = zeros(size(Img), 'uint8');
         segmentedHead  = zeros(size(Img), 'uint8');
 
         for j = 1:numel(validIdx)
             blobIdx  = validIdx(j);
             centroid = props(blobIdx).Centroid;  % [col, row]
-            cr       = round(centroid(2));        % row
-            cc       = round(centroid(1));        % col
+            cr       = round(centroid(2));
+            cc       = round(centroid(1));
 
-            % Adaptive ROI with border-touch retry
-            roiSize    = baseROIsize;
-            maxROIsize = min(H_img, W_img);
-            accepted   = false;
+            % Use oriented extent to size the ROI
+            % MajorAxisLength covers the full comet length (head + tail)
+            % MinorAxisLength covers the width
+            % Add padding proportional to the object size
+            majorLen  = props(blobIdx).MajorAxisLength;
+            minorLen  = props(blobIdx).MinorAxisLength;
+            orient    = props(blobIdx).Orientation;  % degrees from horizontal
 
-            while roiSize <= maxROIsize
-                % Extract ROI centered on centroid
-                r1 = max(1,     cr - floor(roiSize/2));
-                r2 = min(H_img, cr + floor(roiSize/2));
-                c1 = max(1,     cc - floor(roiSize/2));
-                c2 = min(W_img, cc + floor(roiSize/2));
+            % Padding: 30% of major axis or minROIsize, whichever is larger
+            pad = max(round(majorLen * 2), minROIsize);
 
-                ROIimg  = ImgFiltered(r1:r2, c1:c2);
+            % Project major axis unit vector onto row/col
+            orientRad    = deg2rad(orient);
+            majorUnitCol =  cos(orientRad);  % col component of major axis direction
+            majorUnitRow = -sin(orientRad);  % row component (negative: image y is flipped)
 
-                % Build ROI seed mask from watershed blob
-                ROIsegm = uint8(labeled(r1:r2, c1:c2) == blobIdx);
+            % Half-extents along major and minor axes with padding
+            halfMajor = round(majorLen/2) + pad;
+            halfMinor = round(minorLen/2) + pad;
 
-                % If seed not in ROI (edge case) — break
-                if ~any(ROIsegm(:))
-                    break
-                end
+            % Extent in row and col directions:
+            % Major axis contributes along its projection
+            % Minor axis contributes perpendicular to it
+            halfRow = round(abs(halfMajor * majorUnitRow) + abs(halfMinor * majorUnitCol));
+            halfCol = round(abs(halfMajor * majorUnitCol) + abs(halfMinor * majorUnitRow));
 
-                % Segment comet in ROI
-                [MaskComet, ~] = segmentComet(ROIimg, ROIsegm, ...
-                    CometThAdd, CometDiskDil, thMode);
+            % Extract ROI
+            r1 = max(1,     cr - halfRow);
+            r2 = min(H_img, cr + halfRow);
+            c1 = max(1,     cc - halfCol);
+            c2 = min(W_img, cc + halfCol);
 
-                if ~any(MaskComet(:))
-                    break
-                end
+            ROIimg  = ImgFiltered(r1:r2, c1:c2);
+            ROIsegm = uint8(labeled(r1:r2, c1:c2) == blobIdx);
 
-                % Check if mask touches ROI border
-                if touchesBorder(MaskComet)
-                    % Expand ROI and retry
-                    roiSize = round(roiSize * 1.5);
-                    continue
-                end
-
-                % Mask accepted — segment head
-                [MaskHead, ~] = segmentHead(ROIimg, MaskComet, ...
-                    HeadThAdd, HeadDiskDil, thHeadMode);
-
-                % Write comet mask to full image
-                cometROI = segmentedComet(r1:r2, c1:c2);
-                cometROI(MaskComet > 0) = 255;
-                segmentedComet(r1:r2, c1:c2) = cometROI;
-
-                % Write head mask to full image
-                if ~isempty(MaskHead) && any(MaskHead(:))
-                    headROI = segmentedHead(r1:r2, c1:c2);
-                    headROI(MaskHead > 0) = 255;
-                    segmentedHead(r1:r2, c1:c2) = headROI;
-                end
-
-                accepted = true;
-                break
+            if ~any(ROIsegm(:))
+                continue
             end
 
-            if ~accepted
-                % Comet mask touched ROI border at maximum ROI size — object skipped.
+            [MaskComet, ~] = segmentComet(ROIimg, ROIsegm, ...
+                CometThAdd, CometDiskDil, thMode);
+
+            if ~any(MaskComet(:))
+                continue
+            end
+
+            [MaskHead, ~] = segmentHead(ROIimg, MaskComet, ...
+                HeadThAdd, HeadDiskDil, thHeadMode);
+
+            % Write back
+            cometROI = segmentedComet(r1:r2, c1:c2);
+            cometROI(MaskComet > 0) = 255;
+            segmentedComet(r1:r2, c1:c2) = cometROI;
+
+            if ~isempty(MaskHead) && any(MaskHead(:))
+                headROI = segmentedHead(r1:r2, c1:c2);
+                headROI(MaskHead > 0) = 255;
+                segmentedHead(r1:r2, c1:c2) = headROI;
             end
         end
 
@@ -208,8 +215,8 @@ for i = 1:numIm2Segment
         app.comet_handles.Imgs_Stretched(:,:,2,imgIdx) = segmentedComet;
         app.comet_handles.Imgs_Stretched(:,:,3,imgIdx) = segmentedHead;
 
-    catch me
-        fprintf('[WARNING] Image %d failed: %s\n', imgIdx, me.message);
+    catch
+        failedImages(end+1) = imgIdx;
     end
 
     if ishandle(wb)
@@ -223,6 +230,11 @@ if ishandle(wb), close(wb); end
 
 message = {'Segmentation complete.'; ''; ...
            [num2str(numIm2Segment), ' image(s) processed.']};
+if ~isempty(failedImages)
+    failedList   = strjoin(arrayfun(@num2str, failedImages, 'UniformOutput', false), ', ');
+    message{end+1} = '';
+    message{end+1} = ['WARNING: ' num2str(numel(failedImages)) ' image(s) failed (index): ' failedList];
+end
 bool = 1;
 end
 
@@ -230,45 +242,7 @@ end
 % LOCAL FUNCTIONS
 % =========================================================================
 
-function roiSize = computeAdaptiveROISize(app)
-% Compute base ROI size from average area of manually segmented objects.
-% Falls back to fixed default if no manual segmentations exist.
-
-defaultROI = 300;  % fallback if no manual segmentations exist
-
-try
-    allAreas = [];
-    for i = 1:app.comet_handles.NumImages
-        cometMask = app.comet_handles.Imgs_Stretched(:,:,2,i);
-        if ~any(cometMask(:))
-            continue
-        end
-        props    = regionprops(logical(cometMask), 'Area');
-        areas    = [props.Area];
-        allAreas = [allAreas, areas]; %#ok<AGROW>
-    end
-
-    if isempty(allAreas)
-        roiSize = defaultROI;
-        return
-    end
-
-    % Use average equivalent diameter as ROI size with 50% padding
-    avgArea   = mean(allAreas);
-    avgDiam   = 2 * sqrt(avgArea / pi);
-    roiSize   = round(avgDiam * 1.5);
-
-    % Clamp to sensible range
-    roiSize = max(150, min(roiSize, 800));
-
-catch
-    roiSize = defaultROI;
-end
-end
-
-% -------------------------------------------------------------------------
 function result = touchesBorder(mask)
-% Returns true if any foreground pixel touches the mask border
 result = any(mask(1,:)) || any(mask(end,:)) || ...
          any(mask(:,1)) || any(mask(:,end));
 end
